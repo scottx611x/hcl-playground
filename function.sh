@@ -10,9 +10,10 @@ function handler () {
 
   PAYLOAD=$(echo "$EVENT_DATA" | jq -r '.payload' | cat)
 
+  cp main.tf main.tf.bak
+
   # Update our main.tf with event data
   sed -i "s/\# DATA/${PAYLOAD}/" main.tf
-
 
   # Respond to Lambda service by echoing the received data back
 #  RESPONSE="Echoing request: '$EVENT_DATA'"
@@ -22,4 +23,6 @@ function handler () {
   terraform fmt main.tf 1> /dev/null
   terraform init 1> /dev/null
   echo "local.a" | terraform console
+
+  cp main.tf.bak main.tf
 }
