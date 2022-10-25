@@ -2,4 +2,6 @@ terraform {
   backend "local" {}
 }
 
-# DATA
+locals {
+  test = DATA
+}
