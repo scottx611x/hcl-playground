@@ -11,14 +11,21 @@ function handler () {
   # Handles for lambda testing and API Gateway testing
   BODY=$(echo "$EVENT_DATA" | jq -r '.body' | cat)
   PAYLOAD=$(echo "$BODY" | jq -r '.payload' | cat)
+  PATH_PARAMETERS=$(echo "$EVENT_DATA" | jq -r '.pathParameters' | cat)
+  TERRAFORM_VERSION=$(echo "$PATH_PARAMETERS" | jq -r '.terraform_version' | cat)
 
   echo "PAYLOAD: $PAYLOAD" 1>&2;
+  echo "TERRAFORM_VERSION: $TERRAFORM_VERSION" 1>&2;
+
 
   # Note: this is going to get fucky w/ many invocations!
   cp main.tf /tmp/main.tf
 
   # Update our main.tf with event data
   sed -i "s/DATA/${PAYLOAD}/" /tmp/main.tf
+
+  # Set terraform version w/ tfenv
+  /home/root/.tfenv/bin/tfenv use "latest:^$TERRAFORM_VERSION" 1>&2;
 
   echo "main.tf:  $(cat /tmp/main.tf)" 1>&2;
   terraform fmt -no-color /tmp/main.tf 1> /dev/null
