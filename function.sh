@@ -18,7 +18,6 @@ function handler () {
   echo "PAYLOAD: $PAYLOAD" 1>&2;
   echo "TERRAFORM_VERSION: $TERRAFORM_VERSION" 1>&2;
 
-
   # Note: this is going to get fucky w/ many invocations!
   cp main.tf /tmp/main.tf
 
