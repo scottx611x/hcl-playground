@@ -1,6 +1,7 @@
 # Handler function name must match the
 # last part of <fileName>.<handlerName>
 function handler () {
+  cp -r /home/root/.tfenv /tmp/.tfenv
 
   # Get the data
   EVENT_DATA=$1
@@ -25,16 +26,18 @@ function handler () {
   sed -i "s/DATA/${PAYLOAD}/" /tmp/main.tf
 
   # Set terraform version w/ tfenv
-  /home/root/.tfenv/bin/tfenv use "latest:^$TERRAFORM_VERSION" 1>&2;
+  BASHLOG_COLOURS=0 TFENV_INSTALL_DIR=/tmp/tfenv_installs /tmp/.tfenv/bin/tfenv use "latest:^$TERRAFORM_VERSION" 1>&2;
+
+  TERRAFORM=/tmp/.tfenv/versions/"$TERRAFORM_VERSION"/terraform
 
   echo "main.tf:  $(cat /tmp/main.tf)" 1>&2;
-  terraform fmt -no-color /tmp/main.tf 1> /dev/null
+  $TERRAFORM fmt -no-color /tmp/main.tf 1> /dev/null
   echo "main.tf formatted:  $(cat /tmp/main.tf)" 1>&2;
 
   cd /tmp || exit
-  terraform init -no-color 1> /dev/null
+  $TERRAFORM init -no-color 1> /dev/null
 
-  TF_CONSOLE_RESPONSE="$(echo "local.test" | terraform console | jq --slurp '-R' .)"
+  TF_CONSOLE_RESPONSE="$(echo "local.test" | $TERRAFORM console | jq --slurp '-R' .)"
   echo "TF_CONSOLE_RESPONSE: $TF_CONSOLE_RESPONSE" 1>&2;
 
   RESPONSE="{\"statusCode\": 200, \"body\": $TF_CONSOLE_RESPONSE}"
