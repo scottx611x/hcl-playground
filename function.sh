@@ -11,12 +11,16 @@ function handler () {
 
   # Handles for lambda testing and API Gateway testing
   BODY=$(echo "$EVENT_DATA" | jq -r '.body' | cat)
-  PAYLOAD=$(echo "$BODY" | jq -r '.payload' | cat)
-  PATH_PARAMETERS=$(echo "$EVENT_DATA" | jq -r '.pathParameters' | cat)
-  TERRAFORM_VERSION=$(echo "$PATH_PARAMETERS" | jq -r '.terraform_version' | cat)
+  echo "BODY: $BODY" 1>&2;
 
-  echo "PAYLOAD: $PAYLOAD" 1>&2;
-  echo "TERRAFORM_VERSION: $TERRAFORM_VERSION" 1>&2;
+  PAYLOAD=$(echo "$BODY" | jq -r '.payload' | cat)
+  echo "PAYLOAD: PAYLOAD" 1>&2;
+
+  PATH_PARAMETERS=$(echo "$EVENT_DATA" | jq -r '.pathParameters' | cat)
+  echo "PATH_PARAMETERS: PATH_PARAMETERS" 1>&2;
+
+  TERRAFORM_VERSION=$(echo "$PATH_PARAMETERS" | jq -r '.terraform_version' | cat)
+  echo "TERRAFORM_VERSION: TERRAFORM_VERSION" 1>&2;
 
   # Note: this is going to get fucky w/ many invocations!
   cp main.tf /tmp/main.tf
