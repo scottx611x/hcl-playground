@@ -13,20 +13,25 @@ function handler () {
   BODY=$(echo "$EVENT_DATA" | jq -r '.body' | cat)
   echo "BODY: $BODY" 1>&2;
 
-  PAYLOAD=$(echo "$BODY" | jq -r '.payload' | cat)
-  echo "PAYLOAD: PAYLOAD" 1>&2;
+  DATA=$(echo "$BODY" | jq -r '.data' | cat)
+  echo "DATA: $DATA" 1>&2;
+
+  CODE=$(echo "$BODY" | jq -r '.code' | cat)
+  echo "CODE: $CODE" 1>&2;
 
   PATH_PARAMETERS=$(echo "$EVENT_DATA" | jq -r '.pathParameters' | cat)
-  echo "PATH_PARAMETERS: PATH_PARAMETERS" 1>&2;
+  echo "PATH_PARAMETERS: $PATH_PARAMETERS" 1>&2;
 
   TERRAFORM_VERSION=$(echo "$PATH_PARAMETERS" | jq -r '.terraform_version' | cat)
-  echo "TERRAFORM_VERSION: TERRAFORM_VERSION" 1>&2;
+  echo "TERRAFORM_VERSION: $TERRAFORM_VERSION" 1>&2;
 
   # Note: this is going to get fucky w/ many invocations!
   cp main.tf /tmp/main.tf
 
   # Update our main.tf with event data
-  sed -i "s/DATA/${PAYLOAD}/" /tmp/main.tf
+  if [ -n "$DATA" ]; then
+    echo "$DATA" >> /tmp/main.tf
+  fi
 
   # Set terraform version w/ tfenv
   BASHLOG_COLOURS=0 TFENV_INSTALL_DIR=/tmp/tfenv_installs /tmp/.tfenv/bin/tfenv use "latest:^$TERRAFORM_VERSION" 1>&2;
@@ -40,7 +45,9 @@ function handler () {
   cd /tmp || exit
   $TERRAFORM init -no-color 1> /dev/null
 
-  TF_CONSOLE_RESPONSE="$(echo "local.test" | $TERRAFORM console | jq --slurp '-R' .)"
+  export TERRAFORM=$TERRAFORM
+
+  TF_CONSOLE_RESPONSE="$(echo $CODE | bash -c '$TERRAFORM console' 2>&1 | jq --slurp '-R' .)"
   echo "TF_CONSOLE_RESPONSE: $TF_CONSOLE_RESPONSE" 1>&2;
 
   RESPONSE="{\"statusCode\": 200, \"body\": $TF_CONSOLE_RESPONSE}"
