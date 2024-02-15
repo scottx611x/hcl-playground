@@ -34,7 +34,7 @@
 
             <div class="form-group">
                 <label for="codeInput">Enter your HCL code:</label>
-                <textarea id="codeInput" name="codeInput" rows="10" placeholder='setproduct([local.big,"yeet"],["deer","yam"])'>{% if code %}{{code}}{% else %}setproduct([local.big,"yeet"],["deer","yam"]){% endif %}</textarea>
+                <textarea id="codeInput" name="codeInput" rows="10" placeholder='setproduct([local.big,"yeet"],["deer","yam"])' required>{% if code %}{{code}}{% else %}setproduct([local.big,"yeet"],["deer","yam"]){% endif %}</textarea>
             </div>
             <button type="submit">Run Code</button>
         </form>
