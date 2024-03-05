@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>HCL Playground</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js"></script>
+    <script src="https://unpkg.com/tippy.js@6/dist/tippy-bundle.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+        <img src="{{ url_for('static', filename='dog.png') }}" alt="HCL Playground Logo" style="width: 150px; height: auto;">
+        <a href="/" style="text-decoration: none; color: inherit;">
+            <h1 id="pageTitle">HCL Playground</h1>
+        </a>
+    </div>
+        <form id="form" method="POST">
+            <div class="form-group">
+                <label for="terraformVersion">Terraform Version: <i class="fas fa-info-circle tooltip-icon" data-tippy-content="Select the Terraform version you want to evaluate your HCL with"></i></label>
+                <select id="terraformVersion" name="terraformVersion">
+                    {% if selected_terraform_version %}
+                    <option value="{{selected_terraform_version}}">{{selected_terraform_version}}</option>
+                    {% for version in terraform_versions %}
+                    <option value="{{version}}">{{version}}</option>
+                    {% endfor %}
+                    {% else %}
+                    {% for version in terraform_versions %}
+                    <option value="{{version}}">{{version}}</option>
+                    {% endfor %}
+                    {% endif %}}
+                </select>
+                <input type="hidden" id="codeInput" name="codeInput">
+            </div>
+            <label for="monaco-editor">Enter Your HCL Code: <i class="fas fa-info-circle tooltip-icon" data-tippy-content="Enter your HCL code here. Anything outside of a `locals` block will be piped to `terraform console` to be evaluated. No terraform `plan`s or `apply`s will be attempted"></i></label>
+            <div id="editor" class="form-group">
+            </div>
+            <button type="submit">Evaluate</button>
+        </form>
+        {% if output %}
+            <div id="outputSection">
+                <label for="output">Result:</label>
+                <pre id="output" class="output">{{ output }}</pre>
+            </div>
+        {% endif %}
+    </div>
+
+<script>
+    {% if code %}
+    let terraformCode;
+    terraformCode = `{{ code | replace("$","\$") | safe }}`;
+    {% else %}
+    const terraformCode = [
+        '// Everything outside of a locals block is piped to terraform console',
+        'locals {',
+        '  regions = ["us-east-1", "us-west-2", "eu-central-1"]',
+        '  availability_zones = ["a", "b"]',
+        '',
+        '  // Generate all combinations of regions and availability zones',
+        '  region_az_combinations = setproduct(local.regions, local.availability_zones)',
+        '',
+        '  // Create network configurations for each combination',
+        '  network_configurations = [',
+        '    for combo in local.region_az_combinations :',
+        '    {',
+        '      region = combo[0]',
+        '      availability_zone = format("%s%s", combo[0], combo[1])',
+        '      cidr_block = "10.${cidrsubnet("0.0.0.0/8", 8, index(local.region_az_combinations, combo))}.0/24"',
+        '    }',
+        '  ]',
+        '}',
+        '',
+        'local.network_configurations',
+    ].join('\n');
+    {% endif %}
+
+
+    document.addEventListener('DOMContentLoaded', function(){
+        // initialize the editor
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' }});
+
+        require(['vs/editor/editor.main'], function() {
+            window.editor = monaco.editor.create(document.getElementById('editor'), {
+                value: terraformCode,
+                language: 'hcl' // You might need to adjust this or add a custom language definition for full Terraform support
+            });
+        });
+
+        document.getElementById('form').addEventListener('submit', function(e) {
+        document.getElementById('codeInput').value = window.editor.getValue(); // Store it in the hidden input field
+        // No need to call e.preventDefault() unless you want to do something else before the submission
+        });
+
+        // initialize tooltips
+        tippy('.tooltip-icon', {
+            allowHTML: true,
+            theme: 'light',
+            placement: 'right',
+            animation: 'scale',
+        });
+
+    });
+    window.addEventListener('resize', function() {
+        if (window.editor) {
+        window.editor.layout();
+        }
+    });
+    </script>
+
+</body>
+</html>

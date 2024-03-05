@@ -1,11 +1,46 @@
 #!/usr/bin/env python3
 
-import json
+import re
 import os
 import shutil
 import subprocess
 import sys
 import uuid
+
+
+def extract_locals_block(text):
+    """
+    Extracts the 'locals' block from a given HCL text and returns it along with the rest of the text.
+
+    :param text: The HCL text containing a 'locals' block.
+    :return: A tuple containing the 'locals' block content and the rest of the text.
+    """
+    start_pattern = re.compile(r'locals\s*{')
+    start_match = start_pattern.search(text)
+
+    if not start_match:
+        return None, text  # No locals block found
+
+    # Find the start of the locals block
+    start_index = start_match.start()
+
+    # Count braces to find the end of the locals block
+    brace_count = 1
+    i = start_match.end()
+    while i < len(text) and brace_count > 0:
+        if text[i] == '{':
+            brace_count += 1
+        elif text[i] == '}':
+            brace_count -= 1
+        i += 1
+
+    # Extract the locals block and the rest of the text
+    locals_block = text[start_index:i]
+    rest_of_text = text[:start_index] + text[i:]
+
+    rest_of_text = "\n".join(line for line in rest_of_text.splitlines() if not line.startswith("//"))
+
+    return locals_block, rest_of_text
 
 
 def run_subprocess(command, **kwargs):
@@ -31,7 +66,7 @@ def run_subprocess(command, **kwargs):
 
     return result
 
-def handler(event, context):
+def handler(event) -> str:
     run_id = uuid.uuid4().hex
 
     os.mkdir(f"/tmp/{run_id}")
@@ -40,7 +75,7 @@ def handler(event, context):
     shutil.copytree('/home/root/.tfenv', '/tmp/.tfenv', dirs_exist_ok=True)
 
     # Parse the event data
-    event_data = json.loads(event)
+    event_data = event
 
     # Log the event data
     print(f"EVENT_DATA: {event_data}", file=sys.stderr)
@@ -49,10 +84,12 @@ def handler(event, context):
     body = event_data.get('body', '')
     print(f"BODY: {body}", file=sys.stderr)
 
-    data = body.get('data', '') if body else ''
-    print(f"DATA: {data}", file=sys.stderr)
-
     code = body.get('code', '') if body else ''
+    print(f"CODE: {code}", file=sys.stderr)
+
+    locals_block, code = extract_locals_block(code)
+
+    print(f"LOCALS BLOCK: {locals_block}", file=sys.stderr)
     print(f"CODE: {code}", file=sys.stderr)
 
     path_parameters = event_data.get('pathParameters', '')
@@ -61,10 +98,9 @@ def handler(event, context):
     terraform_version = path_parameters.get('terraform_version', '') if path_parameters else ''
     print(f"TERRAFORM_VERSION: {terraform_version}", file=sys.stderr)
 
-    # Update /tmp/main.tf with event data
-    if data:
+    if locals_block is not None:
         with open(f'/tmp/{run_id}/main.tf', 'a') as f:
-            f.write(data)
+            f.write(locals_block)
 
     # Set Terraform version with tfenv
     run_subprocess([
@@ -75,26 +111,23 @@ def handler(event, context):
     terraform_path = f"/tmp/.tfenv/versions/{terraform_version}/terraform"
 
     # Format the Terraform configuration file
-    run_subprocess([terraform_path, 'fmt', '-no-color', '/tmp/main.tf'], cwd=f'/tmp/{run_id}', check=False)
+    run_subprocess([terraform_path, 'fmt', '-no-color', 'main.tf'], cwd=f'/tmp/{run_id}', check=False)
 
     # Initialize Terraform
     run_subprocess([terraform_path, 'init', '-no-color'], cwd=f'/tmp/{run_id}')
 
     # Execute Terraform console with the code from the event
-    run_subprocess(
+    result = run_subprocess(
         [terraform_path, 'console'],
         input=code,
         cwd=f'/tmp/{run_id}',
         check=False,
-        stdout=sys.stdout,
-        stderr=sys.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
         env={"TF_CLI_ARGS": "-no-color"}
     )
 
     shutil.rmtree(f'/tmp/{run_id}')
 
-
-if __name__ == "__main__":
-    event = sys.argv[1]
-    context = sys.argv[1]
-    handler(event, context)
+    return str(result.stdout) + str(result.stderr)

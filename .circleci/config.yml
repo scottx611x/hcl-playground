@@ -1,0 +1,77 @@
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@x.y  # Use the latest version of the AWS CLI orb
+  python: circleci/python@x.y   # Use the latest version of the Python orb
+
+jobs:
+  build-and-deploy-flask-app:
+    docker:
+      - image: cimg/python:3.x  # Use an image with Python 3.x
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Install Zappa
+          command: pip install zappa==X.X.X
+      - run:
+          name: Zappa Deploy
+          command: zappa deploy production  # Adjust 'production' to your Zappa stage
+
+  provision-infra:
+    docker:
+      - image: hashicorp/terraform:light
+    steps:
+      - checkout
+      - run:
+          name: Terraform Init
+          command: terraform init
+      - run:
+          name: Terraform Apply
+          command: terraform apply -auto-approve
+
+  build-and-deploy-lambda:
+    docker:
+      - image: circleci/python:3.x  # Use a Python image for building Docker images
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker Image
+          command: docker build -t your-image-name .
+      - aws-cli/setup
+      - run:
+          name: Authenticate with ECR
+          command: $(aws ecr get-login --no-include-email --region $AWS_REGION)
+      - run:
+          name: Tag and Push Docker Image
+          command: |
+            docker tag your-image-name:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-image-name:latest
+            docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-image-name:latest
+      - run:
+          name: Update Lambda Function
+          command: aws lambda update-function-code --function-name your-lambda-function-name --image-uri $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-image-name:latest
+
+  run-smoke-tests:
+    docker:
+      - image: appropriate/curl  # Any lightweight image with curl
+    steps:
+      - run:
+          name: Smoke Test
+          command: curl -f https://your-api-gateway-url/endpoint || exit 1
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build-and-deploy-flask-app
+      - provision-infra:
+          requires:
+            - build-and-deploy-flask-app
+      - build-and-deploy-lambda:
+          requires:
+            - provision-infra
+      - run-smoke-tests:
+          requires:
+            - build-and-deploy-lambda

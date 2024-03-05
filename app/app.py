@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for
 from bs4 import BeautifulSoup
 import requests
+
+from app.backend.terraform_utils import handler
 
 app = Flask(__name__)
 
@@ -37,24 +39,13 @@ def index():
     output = ""
     if request.method == 'POST':
         # Extract code from the form submission
-        data = request.form.get('dataInput').strip()
         code = request.form.get('codeInput').strip()
         version = request.form.get('terraformVersion')
 
-        response = requests.post(
-            "http://localhost:9000/2015-03-31/functions/function/invocations",
-            json={"pathParameters": {"terraform_version": version}, "body": {"code": code, "data": f"\n{data}"}}
-
+        output = handler(
+            {"pathParameters": {"terraform_version": version}, "body": {"code": code}},
         )
 
-        if not response.text:
-            output = response.json()["body"]
-        else:
-            output = response.text
-        return render_template('index.html', data=data, code=code, output=output, selected_terraform_version=version, terraform_versions=fetch_terraform_versions())
+        return render_template('index.html', code=code, output=output, selected_terraform_version=version, terraform_versions=fetch_terraform_versions())
 
     return render_template('index.html', output=output, terraform_versions=fetch_terraform_versions())
-
-
-if __name__ == '__main__':
-    app.run(debug=True)

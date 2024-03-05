@@ -1,0 +1,201 @@
+/* style.css */
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f7ff; /* Soft blue background for a fresh feel */
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); /* More pronounced shadow for depth */
+    border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border for definition */
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Adjusting the editor's container for responsiveness */
+#editor {
+    height: 450px; /* Adjustable based on preference */
+    width: 100%; /* Ensure it takes the full width of its parent */
+    max-width: 100%; /* Prevents it from extending beyond its container */
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #007bff;
+}
+
+textarea, select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border: 1px solid #e2e8f0; /* Lighter border for inputs */
+    border-radius: 5px;
+    box-sizing: border-box;
+    transition: border-color 0.2s; /* Smooth transition for border color */
+}
+
+textarea:focus, select:focus {
+    border-color: #007bff; /* Highlight focus with brand color */
+    outline: none; /* Remove default focus outline */
+}
+
+button {
+    background-image: linear-gradient(45deg, #007bff, #0056b3); /* Gradient background for button */
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: transform 0.1s; /* Quick transform for a snappy feel */
+}
+
+button:hover {
+    transform: translateY(-2px); /* Slight move up instead of scale */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow for lifted effect */
+}
+
+#outputSection {
+    margin-top: 20px;
+}
+
+#output {
+    background-color: #f8fafc; /* Very light background for output */
+    padding: 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    word-wrap: break-word;
+    overflow-y: auto;
+    min-height: 100px;
+    max-height: 400px;
+    white-space: pre-wrap;
+    transition: background-color 0.2s, border-color 0.2s; /* Smooth transitions for interaction */
+}
+
+#output:hover {
+    background-color: #eef4fd; /* Slightly darker on hover for interactive feel */
+    border-color: #dce7f3; /* Darker border on hover */
+}
+
+.tooltip-icon {
+    position: relative;
+    cursor: pointer;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -60px; /* Use half of the width (120px / 2) to center the tooltip */
+
+    /* Fade in tooltip - animations */
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip-icon:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+@media screen and (max-width: 600px) {
+    .tooltip-text {
+        width: 90%; /* Full width on smaller screens */
+        margin-left: -45%; /* Adjust this value based on the new width */
+    }
+}
+
+.tippy-box[data-theme~='light'] {
+    background-color: #f8f9fa;
+    color: black;
+    border-radius: 8px;
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.tippy-arrow {
+    color: #f8f9fa;
+}
+.header-container {
+    display: flex; /* Use flexbox for layout */
+    align-items: center; /* Vertically center the items in the container */
+    justify-content: start; /* Align items to the start of the container */
+    gap: 20px; /* Space between the logo and the title */
+    padding: 20px; /* Optional: Adds some padding around the contents */
+}
+
+#pageTitle {
+    margin: 0; /* Removes default margin to better control spacing */
+    font-family: 'Poppins', sans-serif; /* This is assuming you are using Poppins as in your provided CSS */
+    font-size: 2.5rem; /* Adjusts the size. Feel free to change it as per your preference */
+    font-weight: 600; /* Makes the font weight semi-bold */
+    color: #0056b3; /* A shade of blue that matches the button gradient. Adjust as needed */
+    text-align: center; /* Centers the text */
+    padding: 20px 0; /* Adds some space around the text */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1); /* Adds a subtle shadow for depth */
+    margin-bottom: 30px; /* Ensures there's some space between this heading and whatever comes next */
+    background-color: rgba(240, 247, 255, 0.8); /* Light background, feel free to adjust */
+    border-radius: 10px; /* Adds rounded corners */
+    display: inline-block; /* Makes the background only as wide as necessary */
+    padding: 10px 20px; /* Adjusts padding around the text */
+}
+
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .container, .form-group, #editor {
+        padding: 10px; /* Adjust padding for smaller screens */
+        margin: 10px auto; /* Center content with automatic margins */
+    }
+
+    #editor {
+        height: 200px; /* Adjust height for smaller screens */
+        width: 85%; /* Full width on smaller screens */
+    }
+
+    .header-container, .form-group, button, select, textarea {
+        flex-direction: column; /* Stack elements vertically */
+        align-items: center; /* Center-align the flex items */
+        width: auto; /* Allow elements to fit their content */
+        max-width: 100%; /* Prevent any element from overflowing */
+    }
+
+    .header-container {
+        justify-content: center; /* Center content for smaller screens */
+        gap: 10px; /* Adjust gap for a compact layout */
+    }
+
+    /* Adjust font sizes, margins, or paddings of elements as needed for smaller screens */
+    #pageTitle {
+        font-size: 2rem; /* Adjust font size for smaller screens */
+    }
+}
+
+/* Ensure inputs and buttons do not overflow their container */
+textarea, select, button {
+    max-width: 100%; /* Ensures these elements fit within their parent container */
+    box-sizing: border-box; /* Includes padding and border in the element's total width and height */
+}
