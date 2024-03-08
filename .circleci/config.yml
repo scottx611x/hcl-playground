@@ -88,6 +88,7 @@ workflows:
       - setup-infrastructure:
           project_path: deployment/terraform/development
       - build-and-push-image:
+          ecr_repo_name: hcl-playground-development
           requires:
             - setup-infrastructure
       - deploy-to-eks:
