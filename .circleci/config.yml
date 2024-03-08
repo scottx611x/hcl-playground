@@ -87,7 +87,7 @@ jobs:
 
   setup-infrastructure:
     docker:
-      - image: hashicorp/terraform:light
+      - image: hashicorp/terraform
     parameters:
       project_path:
         type: string
