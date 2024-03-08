@@ -11,10 +11,10 @@ pr_only: &pr_only
       ignore: main
 
 commands:
-    auth_to_aws:
-      description: Install dependencies that cannot be cached, like postgres and redis
-      steps:
-        - run:
+  auth_to_aws:
+    description: Install dependencies that cannot be cached, like postgres and redis
+    steps:
+      - run:
           name: Obtain Temporary AWS creds
           command: |
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
