@@ -41,6 +41,10 @@ jobs:
     steps:
       - checkout
       - aws-ecr/build_and_push_image:
+          auth:
+            - aws-cli/setup:
+                profile: OIDC-USER
+                role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
           repo: <<parameters.ecr_repo_name>>
           tag: '${CIRCLE_SHA1}'
           dockerfile: Dockerfile
