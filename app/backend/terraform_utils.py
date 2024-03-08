@@ -69,10 +69,10 @@ def run_subprocess(command, **kwargs):
 def handler(event) -> str:
     run_id = uuid.uuid4().hex
 
-    os.mkdir(f"/tmp/{run_id}")
+    os.mkdir(f"/scratch/{run_id}")
 
     # Copy .tfenv folder
-    shutil.copytree('/home/root/.tfenv', '/tmp/.tfenv', dirs_exist_ok=True)
+    shutil.copytree('/home/root/.tfenv', '/scratch/.tfenv', dirs_exist_ok=True)
 
     # Parse the event data
     event_data = event
@@ -99,28 +99,28 @@ def handler(event) -> str:
     print(f"TERRAFORM_VERSION: {terraform_version}", file=sys.stderr)
 
     if locals_block is not None:
-        with open(f'/tmp/{run_id}/main.tf', 'a') as f:
+        with open(f'/scratch/{run_id}/main.tf', 'a') as f:
             f.write(locals_block)
 
     # Set Terraform version with tfenv
     run_subprocess([
-        '/tmp/.tfenv/bin/tfenv',
+        '/scratch/.tfenv/bin/tfenv',
         'use', f"latest:^{terraform_version}"
-    ], env={'BASHLOG_COLOURS': "0", 'TFENV_INSTALL_DIR': '/tmp/tfenv_installs'})
+    ], env={'BASHLOG_COLOURS': "0", 'TFENV_INSTALL_DIR': '/scratch/tfenv_installs'})
 
-    terraform_path = f"/tmp/.tfenv/versions/{terraform_version}/terraform"
+    terraform_path = f"/scratch/.tfenv/versions/{terraform_version}/terraform"
 
     # Format the Terraform configuration file
-    run_subprocess([terraform_path, 'fmt', '-no-color', 'main.tf'], cwd=f'/tmp/{run_id}', check=False)
+    run_subprocess([terraform_path, 'fmt', '-no-color', 'main.tf'], cwd=f'/scratch/{run_id}', check=False)
 
     # Initialize Terraform
-    run_subprocess([terraform_path, 'init', '-no-color'], cwd=f'/tmp/{run_id}')
+    run_subprocess([terraform_path, 'init', '-no-color'], cwd=f'/scratch/{run_id}')
 
     # Execute Terraform console with the code from the event
     result = run_subprocess(
         [terraform_path, 'console'],
         input=code,
-        cwd=f'/tmp/{run_id}',
+        cwd=f'/scratch/{run_id}',
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -128,6 +128,6 @@ def handler(event) -> str:
         env={"TF_CLI_ARGS": "-no-color"}
     )
 
-    shutil.rmtree(f'/tmp/{run_id}')
+    shutil.rmtree(f'/scratch/{run_id}')
 
     return str(result.stdout) + str(result.stderr)

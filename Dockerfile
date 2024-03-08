@@ -17,4 +17,7 @@ USER app-user
 
 EXPOSE 8000
 
+# TODO: this will be an external volume mount in prod
+VOLUME ["/scratch"]
+
 CMD ["uwsgi", "--ini", "uwsgi.ini"]
