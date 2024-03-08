@@ -39,7 +39,7 @@ jobs:
             echo "export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}" >> $BASH_ENV
 
             # interact with AWS
-            aws --no-cli-pager sts get-caller-identity
+            awsv2 --no-cli-pager sts get-caller-identity
 
   build-and-push-image:
     docker:

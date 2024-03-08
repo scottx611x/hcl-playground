@@ -1,4 +1,4 @@
-FROM python:3.12
+FROM python:3.12.2
 
 # Install tfenv
 RUN git clone --depth=1 https://github.com/tfutils/tfenv.git /home/root/.tfenv
