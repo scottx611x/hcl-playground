@@ -17,6 +17,9 @@ commands:
       - run:
           name: Obtain Temporary AWS creds
           command: |
+            export AWS_ROLE_ARN=arn:aws:iam::386710959426:role/hcl-playground-ci
+            export AWS_DEFAULT_REGION=us-east-1
+
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
@@ -101,11 +104,8 @@ jobs:
 workflows:
   build-deploy-dev:
     jobs:
-      - auth_to_aws
       - setup-infrastructure:
           project_path: deployment/terraform/development
-          requires:
-            - auth_to_aws
       - build-and-push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
