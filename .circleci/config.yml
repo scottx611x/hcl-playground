@@ -8,7 +8,7 @@ orbs:
 pr_only: &pr_only
   filters:
     branches:
-      not: main
+      ignore: main
 
 jobs:
   authenticate_to_aws:
