@@ -5,6 +5,11 @@ orbs:
   aws-ecr: circleci/aws-ecr@volatile
   terraform: circleci/terraform@volatile
 
+pr_only: &pr_only
+  filters:
+    branches:
+      not: main
+
 jobs:
   authenticate_to_aws:
     docker:
@@ -94,14 +99,12 @@ workflows:
       - setup-infrastructure:
           project_path: deployment/terraform/development
       - build-and-push-image:
+          <<: *pr_only
           ecr_repo_name: hcl-playground-development
           requires:
             - setup-infrastructure
       - deploy-to-eks:
+          <<: *pr_only
           eks_cluster_name: hcl-playground-development
           requires:
             - build-and-push-image
-    filters:
-      branches:
-        not:
-          - main
