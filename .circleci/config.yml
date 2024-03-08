@@ -10,15 +10,11 @@ pr_only: &pr_only
     branches:
       ignore: main
 
-jobs:
-  auth_to_aws:
-    docker:
-      - image: cimg/python:3.12.2
-    environment:
-      AWS_DEFAULT_REGION: us-east-1
-      AWS_ROLE_ARN: arn:aws:iam::386710959426:role/hcl-playground-ci
-    steps:
-      - run:
+commands:
+    auth_to_aws:
+      description: Install dependencies that cannot be cached, like postgres and redis
+      steps:
+        - run:
           name: Obtain Temporary AWS creds
           command: |
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -46,13 +42,8 @@ jobs:
 
             # interact with AWS
             aws --no-cli-pager sts get-caller-identity
-      - run:
-          command: cp $BASH_ENV bash.env
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bash.env
 
+jobs:
   build-and-push-image:
     docker:
       - image: cimg/python:3.12.2
@@ -61,10 +52,7 @@ jobs:
         type: string
     steps:
       - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          command: cat bash.env >> $BASH_ENV
+      - auth_to_aws
       - aws-ecr/build_and_push_image:
           auth:
             - aws-cli/setup:
@@ -81,10 +69,7 @@ jobs:
         type: string
     steps:
       - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          command: cat bash.env >> $BASH_ENV
+      - auth_to_aws
       - aws-eks/update-kubeconfig-with-authenticator:
           cluster-name: <<parameters.eks_cluster_name>>
       - run:
@@ -105,10 +90,7 @@ jobs:
         type: string
     steps:
       - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          command: cat bash.env >> $BASH_ENV
+      - auth_to_aws
       - terraform/plan:
           path: <<parameters.project_path>>/
           var: "TF_VAR_subdomain_from_env='${CIRCLE_SHA1}'"
