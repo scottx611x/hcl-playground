@@ -40,7 +40,7 @@ jobs:
         type: string
     steps:
       - checkout
-      - aws-ecr/build-and-push-image:
+      - aws-ecr/build_and_push_image:
           repo: <<parameters.ecr_repo_name>>
           tag: '${CIRCLE_SHA1}'
           dockerfile: Dockerfile
