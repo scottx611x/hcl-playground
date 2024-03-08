@@ -46,8 +46,8 @@ jobs:
 
             # interact with AWS
             aws --no-cli-pager sts get-caller-identity
-      - run: |
-          cp $BASH_ENV bash.env
+      - run:
+          command: cp $BASH_ENV bash.env
       - persist_to_workspace:
         root: .
         paths:
@@ -63,8 +63,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run: |
-          cat bash.env >> $BASH_ENV
+      - run:
+          command: cat bash.env >> $BASH_ENV
       - aws-ecr/build_and_push_image:
           auth:
             - aws-cli/setup:
@@ -83,8 +83,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run: |
-          cat bash.env >> $BASH_ENV
+      - run:
+          command: cat bash.env >> $BASH_ENV
       - aws-eks/update-kubeconfig-with-authenticator:
           cluster-name: <<parameters.eks_cluster_name>>
       - run:
@@ -107,8 +107,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run: |
-          cat bash.env >> $BASH_ENV
+      - run:
+          command: cat bash.env >> $BASH_ENV
       - terraform/plan:
           path: <<parameters.project_path>>/
           var: "TF_VAR_subdomain_from_env='${CIRCLE_SHA1}'"
