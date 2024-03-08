@@ -13,7 +13,7 @@ pr_only: &pr_only
 jobs:
   authenticate_to_aws:
     docker:
-      - image: cimg/python:stable
+      - image: cimg/python:3.12.2
     environment:
       AWS_DEFAULT_REGION: us-east-1
       AWS_ROLE_ARN: arn:aws:iam::386710959426:role/hcl-playground-ci
@@ -43,7 +43,7 @@ jobs:
 
   build-and-push-image:
     docker:
-      - image: cimg/python:stable
+      - image: cimg/python:3.12.2
     parameters:
       ecr_repo_name:
         type: string
@@ -59,7 +59,7 @@ jobs:
 
   deploy-to-eks:
     docker:
-      - image: cimg/python:stable
+      - image: cimg/python:3.12.2
     parameters:
       eks_cluster_name:
         type: string
