@@ -6,6 +6,8 @@ orbs:
 
 jobs:
   authenticate_to_aws:
+    docker:
+      - image: cimg/base:stable
     environment:
       AWS_DEFAULT_REGION: us-east-1
       AWS_ROLE_ARN: arn:aws:iam::386710959426:role/hcl-playground-ci
@@ -66,9 +68,6 @@ jobs:
     docker:
       - image: hashicorp/terraform:light
     parameters:
-      auto_approve:
-        type: boolean
-        default: false
       project_path:
         type: string
     steps:
@@ -80,7 +79,6 @@ jobs:
           var: "TF_VAR_subdomain_from_env='${CIRCLE_SHA1}'"
       - terraform/apply:
           path: <<parameters.project_path>>/
-          auto_approve: <<parameters.auto_approve>>
           var: "TF_VAR_subdomain_from_env='${CIRCLE_SHA1}'"
 
 workflows:
@@ -88,7 +86,6 @@ workflows:
     jobs:
       - authenticate_to_aws
       - setup-infrastructure:
-          auto_approve: true
           project_path: deployment/terraform/development
       - build-and-push-image:
           requires:
