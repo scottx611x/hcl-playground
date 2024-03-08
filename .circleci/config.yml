@@ -87,21 +87,42 @@ jobs:
 
   setup-infrastructure:
     docker:
-      - image: hashicorp/terraform
+      - image: cimg/base:stable
     parameters:
       project_path:
         type: string
+      auto_approve:
+        type: boolean
+        default: false
     steps:
       - checkout
       - run:
-          command: apk add --update-cache --upgrade curl
+          name: Install tfenv
+          command: |
+            git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+            echo 'export PATH="$HOME/.tfenv/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Install Terraform version
+          command: |
+            tfenv install 1.7.4
+            tfenv use 1.7.4
       - auth_to_aws
-      - terraform/plan:
-          path: <<parameters.project_path>>/
-          var: "TF_VAR_subdomain_from_env='${CIRCLE_SHA1}'"
-      - terraform/apply:
-          path: <<parameters.project_path>>/
-          var: "TF_VAR_subdomain_from_env='${CIRCLE_SHA1}'"
+      - run:
+          name: Terraform init
+          command: |
+            cd <<parameters.project_path>>
+            terraform init
+      - run:
+          name: Terraform plan
+          command: |
+            cd <<parameters.project_path>>
+            TF_VAR_subdomain_from_env='${CIRCLE_SHA1}' terraform plan
+      - run:
+          name: Terraform apply
+          command: |
+            cd <<parameters.project_path>>
+            TF_VAR_subdomain_from_env='${CIRCLE_SHA1}' terraform apply <<#parameters.auto_approve>> --auto-approve <</parameters.auto_approve>>
 
 workflows:
   build-deploy-dev:
