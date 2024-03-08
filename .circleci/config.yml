@@ -21,11 +21,15 @@ jobs:
       - run:
           name: Obtain Temporary AWS creds
           command: |
-            pip install awscliv2
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+
+            which aws
 
             # use the OpenID Connect token to obtain AWS credentials
             read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN \<<< \
-              $(awsv2 sts assume-role-with-web-identity \
+              $(aws sts assume-role-with-web-identity \
                --role-arn ${AWS_ROLE_ARN} \
                --role-session-name "CircleCI-${CIRCLE_WORKFLOW_ID}-${CIRCLE_JOB}" \
                --web-identity-token $CIRCLE_OIDC_TOKEN \
@@ -39,7 +43,7 @@ jobs:
             echo "export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}" >> $BASH_ENV
 
             # interact with AWS
-            awsv2 --no-cli-pager sts get-caller-identity
+            aws --no-cli-pager sts get-caller-identity
 
   build-and-push-image:
     docker:
