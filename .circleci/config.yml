@@ -13,7 +13,7 @@ pr_only: &pr_only
 jobs:
   authenticate_to_aws:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/python:stable
     environment:
       AWS_DEFAULT_REGION: us-east-1
       AWS_ROLE_ARN: arn:aws:iam::386710959426:role/hcl-playground-ci
@@ -21,6 +21,8 @@ jobs:
       - run:
           name: Obtain Temporary AWS creds
           command: |
+            pip install awscliv2
+
             # use the OpenID Connect token to obtain AWS credentials
             read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN \<<< \
               $(aws sts assume-role-with-web-identity \
@@ -41,7 +43,7 @@ jobs:
 
   build-and-push-image:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/python:stable
     parameters:
       ecr_repo_name:
         type: string
@@ -57,7 +59,7 @@ jobs:
 
   deploy-to-eks:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/python:stable
     parameters:
       eks_cluster_name:
         type: string
