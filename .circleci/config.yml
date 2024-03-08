@@ -49,9 +49,9 @@ jobs:
       - run:
           command: cp $BASH_ENV bash.env
       - persist_to_workspace:
-        root: .
-        paths:
-          - bash.env
+          root: .
+          paths:
+            - bash.env
 
   build-and-push-image:
     docker:
