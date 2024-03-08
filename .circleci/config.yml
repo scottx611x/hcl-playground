@@ -47,7 +47,7 @@ commands:
             aws --no-cli-pager sts get-caller-identity
 
 jobs:
-  build-and-push-image:
+  push-image:
     docker:
       - image: cimg/python:3.12.2
     parameters:
