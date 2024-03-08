@@ -96,6 +96,7 @@ workflows:
           requires:
             - setup-infrastructure
       - deploy-to-eks:
+          eks_cluster_name: hcl-playground-development
           requires:
             - build-and-push-image
     filters:
