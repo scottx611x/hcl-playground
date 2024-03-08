@@ -129,6 +129,7 @@ workflows:
     jobs:
       - setup-infra:
           project_path: deployment/terraform/development
+          auto_approve: true
       - push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
