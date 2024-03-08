@@ -11,6 +11,10 @@ RUN pip install -r requirements.txt
 
 COPY app/ /app
 
-EXPOSE 5000
+# Create a non-root user and switch to it
+RUN adduser --disabled-password --gecos '' app-user
+USER app-user
 
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+EXPOSE 8000
+
+CMD ["uwsgi", "--ini", "uwsgi.ini"]
