@@ -98,6 +98,8 @@ workflows:
       - authenticate_to_aws
       - setup-infrastructure:
           project_path: deployment/terraform/development
+          requires:
+            - authenticate_to_aws
       - build-and-push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
