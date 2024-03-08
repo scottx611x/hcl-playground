@@ -2,6 +2,7 @@ version: 2.1
 orbs:
   aws-eks: circleci/aws-eks@volatile
   aws-ecr: circleci/aws-ecr@volatile
+  terraform: circleci/terraform@volatile
 
 jobs:
   build-and-push-image:
