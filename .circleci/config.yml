@@ -1,5 +1,6 @@
 version: 2.1
 orbs:
+  aws-cli: circleci/aws-cli@volatile
   aws-eks: circleci/aws-eks@volatile
   aws-ecr: circleci/aws-ecr@volatile
   terraform: circleci/terraform@volatile
