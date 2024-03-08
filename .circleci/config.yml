@@ -94,7 +94,7 @@ jobs:
     steps:
       - checkout
       - run:
-          command: apk add curl
+          command: apk add --update-cache --upgrade curl
       - auth_to_aws
       - terraform/plan:
           path: <<parameters.project_path>>/
