@@ -35,7 +35,8 @@ jobs:
             aws --no-cli-pager sts get-caller-identity
 
   build-and-push-image:
-    executor: aws-ecr/default
+    docker:
+      - image: cimg/base:stable
     parameters:
       ecr_repo_name:
         type: string
@@ -50,7 +51,8 @@ jobs:
           dockerfile: Dockerfile
 
   deploy-to-eks:
-    executor: aws-eks/python3
+    docker:
+      - image: cimg/base:stable
     parameters:
       eks_cluster_name:
         type: string
