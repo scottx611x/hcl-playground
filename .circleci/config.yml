@@ -11,7 +11,7 @@ pr_only: &pr_only
       ignore: main
 
 jobs:
-  authenticate_to_aws:
+  auth_to_aws:
     docker:
       - image: cimg/python:3.12.2
     environment:
@@ -101,11 +101,11 @@ jobs:
 workflows:
   build-deploy-dev:
     jobs:
-      - authenticate_to_aws
+      - auth_to_aws
       - setup-infrastructure:
           project_path: deployment/terraform/development
           requires:
-            - authenticate_to_aws
+            - auth_to_aws
       - build-and-push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
