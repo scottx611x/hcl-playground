@@ -87,12 +87,14 @@ jobs:
 
   setup-infrastructure:
     docker:
-      - image: hashicorp/terraform
+      - image: hashicorp/terraform:light
     parameters:
       project_path:
         type: string
     steps:
       - checkout
+      - run:
+          command: apk add curl
       - auth_to_aws
       - terraform/plan:
           path: <<parameters.project_path>>/
