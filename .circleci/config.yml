@@ -59,6 +59,7 @@ jobs:
       - aws-ecr/build_and_push_image:
           auth:
             - aws-cli/setup:
+                account_id: 386710959426
                 role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
           repo: <<parameters.ecr_repo_name>>
           tag: '${CIRCLE_SHA1}'
