@@ -55,15 +55,13 @@ jobs:
         type: string
     steps:
       - checkout
-      - aws-auth
-      - setup_remote_docker
       - aws-ecr/build_and_push_image:
           account_id: "386710959426"
           auth:
-            - aws-cli/setup:
-                role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
+            - aws-auth
           repo: <<parameters.ecr_repo_name>>
           region: "us-east-1"
+          setup_remote_docker: true
           tag: '${CIRCLE_SHA1}'
           dockerfile: Dockerfile
 
