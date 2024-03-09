@@ -118,12 +118,12 @@ jobs:
           name: Terraform plan
           command: |
             cd <<parameters.project_path>>
-            TF_VAR_subdomain_from_env=${CIRCLE_SHA1} terraform plan
+            terraform plan
       - run:
           name: Terraform apply
           command: |
             cd <<parameters.project_path>>
-            TF_VAR_subdomain_from_env=${CIRCLE_SHA1} terraform apply <<#parameters.auto_approve>> --auto-approve <</parameters.auto_approve>>
+            terraform apply <<#parameters.auto_approve>> --auto-approve <</parameters.auto_approve>>
 
 workflows:
   build-deploy-dev:
