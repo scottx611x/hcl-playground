@@ -2,7 +2,6 @@ version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@volatile
   aws-eks: circleci/aws-eks@volatile
-  aws-ecr: circleci/aws-ecr@volatile
   terraform: circleci/terraform@volatile
 
 pr_only: &pr_only
@@ -54,16 +53,15 @@ jobs:
       ecr_repo_name:
         type: string
     steps:
+      - setup_remote_docker
       - checkout
-      - aws-ecr/build_and_push_image:
-          account_id: "386710959426"
-          auth:
-            - aws-auth
-          repo: <<parameters.ecr_repo_name>>
-          region: "us-east-1"
-          setup_remote_docker: true
-          tag: '${CIRCLE_SHA1}'
-          dockerfile: Dockerfile
+      - aws-auth
+      - run:
+          name: Build and push Docker image
+          command: |
+            docker build -t 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1} .
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 386710959426.dkr.ecr.us-east-1.amazonaws.com
+            docker push 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1} .
 
   eks-deploy:
     docker:
