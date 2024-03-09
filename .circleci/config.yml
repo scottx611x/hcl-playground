@@ -59,9 +59,10 @@ jobs:
       - run:
           name: Build and push Docker image
           command: |
-            docker build -t 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1} .
+            TAG=386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
+            docker build -t $TAG .
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 386710959426.dkr.ecr.us-east-1.amazonaws.com
-            docker push 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1} .
+            docker push $TAG
 
   eks-deploy:
     docker:
