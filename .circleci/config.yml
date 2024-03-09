@@ -57,7 +57,7 @@ jobs:
       - checkout
       - aws-auth
       - aws-ecr/build_and_push_image:
-          account_id: 386710959426
+          account_id: "386710959426"
           auth:
             - aws-cli/setup:
                 role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
