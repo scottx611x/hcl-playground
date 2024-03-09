@@ -49,7 +49,7 @@ commands:
 jobs:
   push-image:
     docker:
-      - image: cimg/python:3.12.2
+      - image: cimg/base:stable
     parameters:
       ecr_repo_name:
         type: string
@@ -63,12 +63,13 @@ jobs:
             - aws-cli/setup:
                 role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
           repo: <<parameters.ecr_repo_name>>
+          region: "us-east-1"
           tag: '${CIRCLE_SHA1}'
           dockerfile: Dockerfile
 
   eks-deploy:
     docker:
-      - image: cimg/python:3.12.2
+      - image: cimg/base:stable
     parameters:
       eks_cluster_name:
         type: string
@@ -80,7 +81,7 @@ jobs:
       - run:
           name: Replace image name in Kubernetes deployment file
           command: |
-            sed -i 's|{{IMAGE_NAME}}|123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:${CIRCLE_SHA1}|' ./k8s/deployment.yaml
+            sed -i 's|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|' ./k8s/deployment.yaml
       - run:
           name: Deploy to EKS
           command: |
