@@ -11,6 +11,5 @@ resource "aws_eks_cluster" "this" {
   # Otherwise, EKS will not be able to properly delete EKS managed EC2 infrastructure such as Security Groups.
   depends_on = [
     aws_iam_role_policy_attachment.this,
-    aws_iam_role_policy_attachment.this2
   ]
 }
