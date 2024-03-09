@@ -56,6 +56,7 @@ jobs:
     steps:
       - checkout
       - aws-auth
+      - setup_remote_docker
       - aws-ecr/build_and_push_image:
           account_id: "386710959426"
           auth:
