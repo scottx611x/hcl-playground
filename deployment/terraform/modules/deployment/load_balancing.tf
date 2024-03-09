@@ -1,6 +1,6 @@
 # Load Balancer and Target Group for HTTPS
 resource "aws_lb" "this" {
-  name               = "my-lb"
+  name               = "hcl-playground-lb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.eks_sg.id]
@@ -8,7 +8,7 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "this" {
-  name     = "my-tg"
+  name     = "hcl-playground-tg"
   port     = 443
   protocol = "HTTPS"
   vpc_id   = aws_vpc.this.id
