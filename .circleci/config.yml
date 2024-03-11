@@ -85,8 +85,8 @@ jobs:
       - run:
           name: Deploy to EKS
           command: |
-            kubectl apply -f deployment/k8s/deployment.yaml
-            kubectl apply -f deployment/k8s/service.yaml
+            kubectl apply -f deployment/k8s/development/deployment.yaml
+            kubectl apply -f deployment/k8s/devlopment/service.yaml
 
   setup-infra:
     docker:
