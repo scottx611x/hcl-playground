@@ -91,7 +91,7 @@ jobs:
           name: Deploy to EKS
           command: |
             kubectl apply -f ./deployment/k8s/development/deployment.yml
-            kubectl apply -f ./deployment/k8s/devlopment/service.yml
+            kubectl rollout status deployment/hcl-playground-development
 
   setup-infra:
     docker:
