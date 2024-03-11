@@ -171,6 +171,32 @@ button {
     color: #f8f9fa;
 }
 
+.site-footer {
+    background-color: #333; /* Dark background for the footer */
+    color: white; /* Light text color for contrast */
+    text-align: center; /* Center-align the text */
+    padding: 20px 0; /* Padding around the content */
+    margin-top: 40px; /* Space between the content and the footer */
+}
+
+.footer-content {
+    max-width: 800px;
+    margin: auto;
+}
+
+.footer-content p {
+    margin: 10px 0; /* Vertical spacing */
+}
+
+.footer-content a {
+    color: #007bff; /* Brand color for links */
+    text-decoration: none; /* Removes underline from links */
+}
+
+.footer-content a:hover {
+    text-decoration: underline; /* Adds underline on hover for links */
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
     .container, .form-group, #editor {
