@@ -73,16 +73,19 @@ jobs:
     steps:
       - checkout
       - aws-auth
-      - aws-eks/update-kubeconfig-with-authenticator:
-          aws-region: us-east-1
-          cluster-name: <<parameters.eks_cluster_name>>
-          install-aws-cli: false
-          install-kubectl: true
+      - run:
+          name: Install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+            chmod +x ./kubectl
+            sudo mv ./kubectl /usr/local/bin/kubectl
+      - run:
+          name: Set up Kubernetes configuration
+          command: |
+            aws eks --region us-east-1 update-kubeconfig --name hcl-playground-development
       - run:
           name: Replace image name in Kubernetes deployment file
           command: |
-            ls -al
-
             sed -i 's|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|' ./deployment/k8s/development/deployment.yml
       - run:
           name: Deploy to EKS
