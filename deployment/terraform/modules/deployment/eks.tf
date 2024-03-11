@@ -28,9 +28,7 @@ resource "aws_eks_node_group" "this" {
     min_size     = 1
   }
 
-  ami_type = "AL2_ARM_64"
-
-  instance_types = ["t4g.micro"]
+  instance_types = ["t3.micro"]
 
   capacity_type = "SPOT"
 
