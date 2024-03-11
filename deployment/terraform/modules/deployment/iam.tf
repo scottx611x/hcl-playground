@@ -46,3 +46,8 @@ resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
   role       = aws_iam_role.eks_worker_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
+
+# https://github.com/terraform-aws-modules/terraform-aws-eks/issues/823#issuecomment-633783718
+resource "aws_iam_service_linked_role" "AWSServiceRoleForAmazonEKSNodegroup" {
+aws_service_name = "eks-nodegroup.amazonaws.com"
+}
