@@ -83,12 +83,12 @@ jobs:
           command: |
             ls -al
 
-            sed -i 's|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|' ./deployment/k8s/development/deployment.yaml
+            sed -i 's|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|' ./deployment/k8s/development/deployment.yml
       - run:
           name: Deploy to EKS
           command: |
-            kubectl apply -f ./deployment/k8s/development/deployment.yaml
-            kubectl apply -f ./deployment/k8s/devlopment/service.yaml
+            kubectl apply -f ./deployment/k8s/development/deployment.yml
+            kubectl apply -f ./deployment/k8s/devlopment/service.yml
 
   setup-infra:
     docker:
