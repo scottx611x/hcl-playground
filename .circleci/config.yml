@@ -74,7 +74,10 @@ jobs:
       - checkout
       - aws-auth
       - aws-eks/update-kubeconfig-with-authenticator:
+          aws-region: us-east-1
           cluster-name: <<parameters.eks_cluster_name>>
+          install-aws-cli: false
+          install-kubectl: true
       - run:
           name: Replace image name in Kubernetes deployment file
           command: |
