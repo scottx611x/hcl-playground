@@ -21,7 +21,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 }
 
 resource "aws_iam_role" "eks_worker_role" {
-  name = "example-eks-worker-role"
+  name = "eksWorkerRole"
 
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"

@@ -16,9 +16,9 @@ resource "aws_eks_cluster" "this" {
   ]
 }
 
-resource "aws_eks_node_group" "example" {
+resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
-  node_group_name = "example-eks-node-group"
+  node_group_name = "hcl-playground-development-node-group"
   node_role_arn   = aws_iam_role.eks_worker_role.arn
   subnet_ids      = aws_subnet.this[*].id
 
