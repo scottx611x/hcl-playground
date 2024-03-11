@@ -1,3 +1,4 @@
 .idea
 .terraform
 *.pyc
+.DS_Store
