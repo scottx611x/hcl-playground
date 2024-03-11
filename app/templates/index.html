@@ -15,11 +15,14 @@
 <body>
     <div class="container">
         <div class="header-container">
-        <img src="{{ url_for('static', filename='dog.png') }}" alt="HCL Playground Logo" style="width: 150px; height: auto;">
-        <a href="/" style="text-decoration: none; color: inherit;">
-            <h1 id="pageTitle">HCL Playground</h1>
-        </a>
-    </div>
+            <img src="{{ url_for('static', filename='dog.png') }}" alt="HCL Playground Logo" style="width: 15%; height: auto;">
+            <a href="/" style="text-decoration: none; color: inherit;">
+                <h1 id="pageTitle">HCL Playground</h1>
+            </a>
+            <a href="https://github.com/scottx611x/hcl-playground" target="_blank" class="github-icon" style="width: 20%; height: auto;">
+                <i class="fab fa-github"></i>
+            </a>
+        </div>
         <form id="form" method="POST">
             <div class="form-group">
                 <label for="terraformVersion">Terraform Version: <i class="fas fa-info-circle tooltip-icon" data-tippy-content="Select the Terraform version you want to evaluate your HCL with"></i></label>
