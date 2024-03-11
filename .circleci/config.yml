@@ -1,8 +1,6 @@
 version: 2.1
 orbs:
-  aws-cli: circleci/aws-cli@volatile
-  aws-eks: circleci/aws-eks@volatile
-  terraform: circleci/terraform@volatile
+  cypress: cypress-io/cypress@3.3.1
 
 pr_only: &pr_only
   filters:
@@ -93,6 +91,17 @@ jobs:
             kubectl apply -f ./deployment/k8s/development/deployment.yml
             kubectl rollout status deployment/hcl-playground-development
 
+  test:
+    docker:
+      - image: cimg/base:stable
+      - image: 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
+        aws_auth:
+          oidc_role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
+    steps:
+      - checkout
+      - cypress/install
+      - cypress/run-tests
+
   setup-infra:
     docker:
       - image: cimg/base:stable
@@ -143,8 +152,12 @@ workflows:
           ecr_repo_name: hcl-playground-development
           requires:
             - setup-infra
+      - test:
+          <<: *pr_only
+          requires:
+            - push-image
       - eks-deploy:
           <<: *pr_only
           eks_cluster_name: hcl-playground-development
           requires:
-            - push-image
+            - test
