@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp-service
+  name: hcl-playground-development
 spec:
   selector:
-    app: myapp
+    app: hcl-playground-development
   type: LoadBalancer
   ports:
   - protocol: TCP

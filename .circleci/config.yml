@@ -81,7 +81,7 @@ jobs:
       - run:
           name: Replace image name in Kubernetes deployment file
           command: |
-            sed -i 's|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|' ./k8s/deployment.yaml
+            sed -i 's|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|' deployment/k8s/development/deployment.yaml
       - run:
           name: Deploy to EKS
           command: |
