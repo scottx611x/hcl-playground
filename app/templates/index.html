@@ -43,7 +43,7 @@
             <label for="monaco-editor">Enter Your HCL Code: <i class="fas fa-info-circle tooltip-icon" data-tippy-content="Enter your HCL code here. Anything outside of a `locals` block will be piped to `terraform console` to be evaluated. No terraform `plan`s or `apply`s will be attempted"></i></label>
             <div id="editor" class="form-group">
             </div>
-            <button type="submit">Evaluate</button>
+            <button id="evalutate" type="submit">Evaluate</button>
         </form>
         {% if output %}
             <div id="outputSection">
