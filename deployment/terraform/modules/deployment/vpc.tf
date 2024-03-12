@@ -32,3 +32,23 @@ resource "aws_security_group" "eks_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_vpc_endpoint" "ec2" {
+  vpc_id       = aws_vpc.this.id
+  service_name = "com.amazonaws.us-east-1.ec2"
+}
+
+resource "aws_vpc_endpoint" "ecr" {
+  vpc_id       = aws_vpc.this.id
+  service_name = "com.amazonaws.us-east-1.ecr.api"
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id       = aws_vpc.this.id
+  service_name = "com.amazonaws.us-east-1.ecr.dkr"
+}
+
+resource "aws_vpc_endpoint" "sts" {
+  vpc_id       = aws_vpc.this.id
+  service_name = "com.amazonaws.us-east-1.sts"
+}
