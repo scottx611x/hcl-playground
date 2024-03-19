@@ -36,19 +36,23 @@ resource "aws_security_group" "eks_sg" {
 resource "aws_vpc_endpoint" "ec2" {
   vpc_id       = aws_vpc.this.id
   service_name = "com.amazonaws.us-east-1.ec2"
+  vpc_endpoint_type = "Interface"
 }
 
 resource "aws_vpc_endpoint" "ecr" {
   vpc_id       = aws_vpc.this.id
   service_name = "com.amazonaws.us-east-1.ecr.api"
+  vpc_endpoint_type = "Interface"
 }
 
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id       = aws_vpc.this.id
   service_name = "com.amazonaws.us-east-1.ecr.dkr"
+  vpc_endpoint_type = "Interface"
 }
 
 resource "aws_vpc_endpoint" "sts" {
   vpc_id       = aws_vpc.this.id
   service_name = "com.amazonaws.us-east-1.sts"
+  vpc_endpoint_type = "Interface"
 }
