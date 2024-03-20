@@ -16,16 +16,26 @@ resource "aws_eks_cluster" "this" {
   ]
 }
 
+data "aws_ssm_parameter" "eks_ami_release_version" {
+  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/recommended/release_version"
+}
+
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "hcl-playground-development-node-group"
   node_role_arn   = aws_iam_role.eks_worker_role.arn
   subnet_ids      = aws_subnet.this[*].id
+  version         = aws_eks_cluster.this.version
+  release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
 
   scaling_config {
     desired_size = 2
     max_size     = 3
     min_size     = 1
+  }
+
+  lifecycle {
+    ignore_changes = [scaling_config[0].desired_size]
   }
 
   instance_types = ["t3.micro"]
