@@ -15,6 +15,21 @@ resource "aws_internet_gateway" "my_igw" {
   vpc_id = aws_vpc.this.id
 }
 
+resource "aws_route_table" "eks_route_table" {
+  vpc_id = aws_vpc.this.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.my_igw.id
+  }
+}
+
+resource "aws_route_table_association" "eks_rta" {
+  count          = length(aws_subnet.this)
+  subnet_id      = aws_subnet.this[count.index].id
+  route_table_id = aws_route_table.eks_route_table.id
+}
+
 resource "aws_security_group" "eks_sg" {
   vpc_id = aws_vpc.this.id
 
