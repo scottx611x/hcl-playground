@@ -20,6 +20,18 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
   name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/recommended/release_version"
 }
 
+resource "aws_launch_template" "this" {
+  name_prefix   = "${var.eks_cluster_name}-"
+  image_id      = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  instance_type = "t3.micro"
+
+  userdata = <<-USERDATA
+  #!/bin/bash
+  set -o xtrace
+  /etc/eks/bootstrap.sh ${var.eks_cluster_name}
+  USERDATA
+}
+
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "hcl-playground-development-node-group"
@@ -32,6 +44,11 @@ resource "aws_eks_node_group" "this" {
     desired_size = 2
     max_size     = 3
     min_size     = 1
+  }
+
+  launch_template {
+    id = aws_launch_template.this.id
+    version = "$Latest"
   }
 
   lifecycle {
