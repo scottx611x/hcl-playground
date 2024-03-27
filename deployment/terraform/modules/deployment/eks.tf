@@ -20,18 +20,13 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
   name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/recommended/release_version"
 }
 
-data "aws_ami" "eks_optimized" {
-  most_recent = true
-  filter {
-    name   = "name"
-    values = ["/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/*"]
-  }
-  owners = ["amazon"]
+data "aws_ssm_parameter" "eks_ami_image_id" {
+  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/recommended/image_id"
 }
 
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.eks_cluster_name}-"
-  image_id      = data.aws_ami.eks_optimized.id
+  image_id      = nonsensitive(data.aws_ssm_parameter.eks_ami_image_id.value)
   instance_type = "t3.micro"
 
   user_data = <<-USERDATA
