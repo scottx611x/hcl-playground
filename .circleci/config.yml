@@ -50,7 +50,8 @@ jobs:
       ecr_repo_name:
         type: string
     steps:
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       - aws-auth
       - run:
