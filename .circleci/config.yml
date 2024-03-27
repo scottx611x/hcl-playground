@@ -150,7 +150,6 @@ workflows:
       - push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
-          requires:
       - test:
           <<: *pr_only
           requires:
