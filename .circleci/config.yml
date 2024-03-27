@@ -9,7 +9,6 @@ pr_only: &pr_only
 
 commands:
   aws-auth:
-    description: Install dependencies that cannot be cached, like postgres and redis
     steps:
       - run:
           name: Obtain Temporary AWS creds
