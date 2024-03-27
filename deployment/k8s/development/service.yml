@@ -6,12 +6,17 @@ metadata:
     # TODO: fetch these dynamically
     service.beta.kubernetes.io/aws-load-balancer-arn: "arn:aws:elasticloadbalancing:us-east-1:386710959426:loadbalancer/app/hcl-playground-lb/2975a2897854dc77"
     service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:386710959426:certificate/e4698b03-63d5-4133-a18a-7b692a41afd9"
+    service.beta.kubernetes.io/aws-load-balancer-target-group-arn: "arn:aws:elasticloadbalancing:us-east-1:386710959426:targetgroup/hcl-playground-tg/b6561c97e267ac21"
 
-    service.beta.kubernetes.io/aws-load-balancer-type: "alb"
+    service.beta.kubernetes.io/aws-load-balancer-type: "external" # Specifies that an existing external load balancer should be used
+    service.beta.kubernetes.io/aws-load-balancer-ssl-protocols: "TLSv1.2"
     service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
+
 spec:
   selector:
     app: hcl-playground-development
