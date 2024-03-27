@@ -24,7 +24,7 @@ data "aws_ami" "eks_optimized" {
   most_recent = true
   filter {
     name   = "name"
-    values = ["*/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/*"]
+    values = ["/aws/service/eks/optimized-ami/${aws_eks_cluster.this.version}/amazon-linux-2/*"]
   }
   owners = ["amazon"]
 }
