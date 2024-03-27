@@ -31,10 +31,6 @@ resource "aws_launch_template" "this" {
     /etc/eks/bootstrap.sh ${var.eks_cluster_name}
   USERDATA
   )
-
-  instance_market_options {
-    market_type = "spot"
-  }
 }
 
 resource "aws_eks_node_group" "this" {
@@ -57,6 +53,8 @@ resource "aws_eks_node_group" "this" {
   lifecycle {
     ignore_changes = [scaling_config[0].desired_size]
   }
+
+  capacity_type = "SPOT"
 
   depends_on = [
     aws_iam_service_linked_role.AWSServiceRoleForAmazonEKSNodegroup,
