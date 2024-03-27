@@ -29,11 +29,12 @@ resource "aws_launch_template" "this" {
   image_id      = nonsensitive(data.aws_ssm_parameter.eks_ami_image_id.value)
   instance_type = "t3.micro"
 
-  user_data = <<-USERDATA
-  #!/bin/bash
-  set -o xtrace
-  /etc/eks/bootstrap.sh ${var.eks_cluster_name}
+  user_data = base64encode(<<-USERDATA
+    #!/bin/bash
+    set -o xtrace
+    /etc/eks/bootstrap.sh ${var.eks_cluster_name}
   USERDATA
+  )
 }
 
 resource "aws_eks_node_group" "this" {
