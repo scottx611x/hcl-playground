@@ -96,6 +96,31 @@ jobs:
             kubectl apply -f ./deployment/k8s/development/deployment.yml
             kubectl rollout status deployment/hcl-playground-development
 
+            kubectl apply -f ./deployment/k8s/development/service.yml
+
+            SERVICE_NAME="hcl-playground-development"
+            MAX_ATTEMPTS=30
+            SLEEP_INTERVAL=10
+
+            attempt=1
+
+            while [ $attempt -le $MAX_ATTEMPTS ]; do
+                echo "Attempt $attempt: Checking service status..."
+                STATUS=$(kubectl get svc $SERVICE_NAME -o=jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+                if [ -n "$STATUS" ]; then
+                    echo "Service $SERVICE_NAME is ready. Hostname: $STATUS"
+                    exit 0
+                else
+                    echo "Service $SERVICE_NAME not ready yet. Retrying in $SLEEP_INTERVAL seconds..."
+                    sleep $SLEEP_INTERVAL
+                    ((attempt++))
+                fi
+            done
+
+            echo "Service $SERVICE_NAME failed to become ready after $MAX_ATTEMPTS attempts."
+            exit 1
+
+
   test:
     machine:
       image: ubuntu-2204:current

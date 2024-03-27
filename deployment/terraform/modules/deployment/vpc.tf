@@ -57,6 +57,7 @@ resource "aws_vpc_endpoint" "ec2" {
   security_group_ids = [
     aws_security_group.eks_sg.id,
   ]
+  subnet_ids = aws_subnet.this[*].id
   private_dns_enabled = true
 }
 resource "aws_vpc_endpoint_policy" "ec2" {
@@ -71,6 +72,7 @@ resource "aws_vpc_endpoint" "ecr" {
   security_group_ids = [
     aws_security_group.eks_sg.id,
   ]
+  subnet_ids = aws_subnet.this[*].id
   private_dns_enabled = true
 }
 resource "aws_vpc_endpoint_policy" "ecr" {
@@ -85,6 +87,7 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   security_group_ids = [
     aws_security_group.eks_sg.id,
   ]
+  subnet_ids = aws_subnet.this[*].id
   private_dns_enabled = true
 }
 resource "aws_vpc_endpoint_policy" "ecr_dkr" {
@@ -99,6 +102,7 @@ resource "aws_vpc_endpoint" "sts" {
   security_group_ids = [
     aws_security_group.eks_sg.id,
   ]
+  subnet_ids = aws_subnet.this[*].id
   private_dns_enabled = true
 }
 resource "aws_vpc_endpoint_policy" "sts" {
