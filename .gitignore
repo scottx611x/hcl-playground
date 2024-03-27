@@ -1,7 +1,6 @@
 .idea
 .terraform
 .terraform.lock.hcl
-package-lock.json
 *.pyc
 .DS_Store
 node_modules
