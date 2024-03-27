@@ -92,13 +92,24 @@ jobs:
             kubectl rollout status deployment/hcl-playground-development
 
   test:
-    docker:
-      - image: cimg/node:lts-browsers
-      - image: 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
-        aws_auth:
-          oidc_role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
+    machine:
+      image: ubuntu-2204:current
     steps:
       - checkout
+      - aws-auth
+      - run:
+          name: Pull and run test image
+          command: |
+            TAG=386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 386710959426.dkr.ecr.us-east-1.amazonaws.com
+            docker pull $TAG
+            docker run -d -v /tmp:/scratch $TAG
+      - run:
+          name: Tail test image logs
+          command: |
+            TAG=386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
+            docker logs --follow $TAG
+          background: true
       - cypress/install
       - cypress/run-tests
 
