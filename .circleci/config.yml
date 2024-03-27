@@ -93,7 +93,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:stable
       - image: 386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
         aws_auth:
           oidc_role_arn: arn:aws:iam::386710959426:role/hcl-playground-ci
