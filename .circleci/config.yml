@@ -151,7 +151,6 @@ workflows:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
           requires:
-            - setup-infra
       - test:
           <<: *pr_only
           requires:
@@ -160,4 +159,5 @@ workflows:
           <<: *pr_only
           eks_cluster_name: hcl-playground-development
           requires:
+            - setup-infra
             - test
