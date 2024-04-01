@@ -7,6 +7,6 @@ spec:
     app: hcl-playground-development
   ports:
     - protocol: TCP
-      port: 80
+      port: 443
       targetPort: 8080
   type: NodePort
