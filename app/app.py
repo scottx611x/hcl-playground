@@ -52,3 +52,8 @@ def index():
         return render_template('index.html', code=code, output=output, selected_terraform_version=version, terraform_versions=fetch_terraform_versions())
 
     return render_template('index.html', output=output, terraform_versions=fetch_terraform_versions())
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    return "healthy", 200
