@@ -3,8 +3,25 @@
 
 ## Description
 
-The HCL Playground App is a Dockerized Flask application designed to provide a playground environment for evaluating HashiCorp Configuration Language (HCL) code on-demand.
-The aim of this project is avoid the
+HCL Playground App is an application designed to provide a playground/sandbox environment for evaluating HashiCorp Configuration Language (HCL) code on-demand.
+The aim of this project is avoid the [toil/overhead required to simply evaluate some HCL-code](https://github.com/hashicorp/terraform/issues/24094#issuecomment-1825482867) where a user currently has to:
+- Install terraform
+- Setup a new project
+- Write some HCL
+- `terraform init`
+- `terraform console`
+- < test how [setproduct()](https://developer.hashicorp.com/terraform/language/functions/setproduct) works on your current `locals` data >
+- "Oops I made a mistake!"
+- `Ctrl+C`
+- edit `locals` block
+- `terraform console`
+- rinse and repeat
+
+If you've been in the depths of attempting to get "creative" with cobbling together the terraform functions available to massage some complex inputs you may catch my drift.
+
+### Demo
+https://github.com/scottx611x/hcl-playground/assets/5629547/c434d740-2370-4d9b-bf64-52e0eda41b64
+
 
 ## Getting Started
 
@@ -12,7 +29,6 @@ The aim of this project is avoid the
 
 - Docker installed on your local machine
 - Git (for cloning the repository)
-- Python and Flask (for local development without Docker)
 
 ### Local Development
 
@@ -41,16 +57,16 @@ The CI configuration is defined in `.circleci/config.yml`. The key jobs in the p
    Obtains temporary AWS credentials via [CircleCI's OIDC pattern](https://circleci.com/docs/openid-connect-tokens/) for use in subsequent steps. This is necessary for actions like pushing Docker images to ECR and updating Kubernetes configurations.
 
 2. **Push Docker Image (`push-image`)**:
-   Builds the Docker image and pushes it to AWS ECR. This step uses the `cimg/base:stable` Docker image as a base.
+   Builds the Docker image and pushes it to AWS ECR
 
 3. **Deploy to EKS (`eks-deploy`)**:
    - Installs `kubectl` and `helm`.
-   - Sets up Kubernetes configuration to interact with the EKS cluster.
+   - Sets up Kubernetes configuration to be able to interact with the EKS cluster.
    - Applies Kubernetes deployment, service, and ingress manifests to the EKS cluster.
    - Verifies the deployment status.
 
 4. **Run Tests (`test`)**:
-   Pulls the Docker image built eariler in the pipeline from ECR and runs tests using Cypress.
+   Pulls the Docker image built earlier in the pipeline from ECR and runs tests using Cypress.
 
 5. **Setup Infrastructure (`setup-infra`)**:
    Uses Terraform to set up or update infrastructure as defined in the Terraform files located in the project.
@@ -68,13 +84,13 @@ The `build-deploy-dev` workflow orchestrates the above jobs:
 To run Cypress-based tests:
 
 1. **Ensure Cypress is Installed**:
-   If Cypress is not already installed, you can install it by running:
+   If Cypress is not already installed, you can install it by running the following in the project root:
    ```bash
-   npm install cypress
+   npm install
    ```
 
 2. **Run Cypress Tests**:
-   Execute the Cypress tests using the Cypress CLI:
+   Execute the Cypress tests using the Cypress UI:
    ```bash
    npx cypress open
    ```
@@ -88,10 +104,6 @@ To run Cypress-based tests:
 ## Deployment
 
 The application is deployed to AWS EKS using Kubernetes manifests. The deployment process is automated through the CircleCI pipeline, which builds the Docker image, pushes it to ECR, and then updates the Kubernetes deployment on EKS.
-
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Authors
 
