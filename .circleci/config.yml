@@ -118,7 +118,7 @@ jobs:
             helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
               --namespace kube-system \
               --set clusterName=hcl-playground-development \
-              --set serviceAccount.create=false \
+              --set serviceAccount.create=true \
               --set serviceAccount.name=aws-load-balancer-controller
       - run:
           name: Verify AWS Load Balancer Controller Installation
