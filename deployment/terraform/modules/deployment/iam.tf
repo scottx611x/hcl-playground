@@ -47,7 +47,8 @@ resource "aws_iam_policy" "eks_worker_policy" {
       {
         Action = [
           "acm:List*",
-          "acm:Describe*"
+          "acm:Describe*",
+          "elasticloadbalancing:Describe*"
         ]
         Effect   = "Allow"
         Resource = "*"
