@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   name: hcl-playground-ingress
   annotations:
+    # TODO: fetch these dynamically
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:386710959426:certificate/e4698b03-63d5-4133-a18a-7b692a41afd9"
+
     kubernetes.io/ingress.class: "alb"
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
@@ -11,15 +14,15 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
     alb.ingress.kubernetes.io/success-codes: "200"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:386710959426:certificate/e4698b03-63d5-4133-a18a-7b692a41afd9"
 spec:
   rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: hcl-playground-development
-            port:
-              number: 80
+    - host: development.hcl-playground.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hcl-playground-development
+                port:
+                  number: 80
