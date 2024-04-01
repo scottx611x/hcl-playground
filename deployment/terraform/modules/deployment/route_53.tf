@@ -13,4 +13,4 @@ data "aws_route53_zone" "hcl_playground_zone" {
 #    zone_id                = aws_lb.this.zone_id
 #    evaluate_target_health = true
 #  }
-}
+#}
