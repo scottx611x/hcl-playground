@@ -55,6 +55,7 @@ resource "aws_iam_policy" "eks_worker_policy" {
           "ec2:AuthorizeSecurityGroupIngress",
           "elasticloadbalancing:CreateTargetGroup",
           "elasticloadbalancing:CreateLoadBalancer",
+          "elasticloadbalancing:CreateListener",
           "elasticloadbalancing:AddTags"
         ]
         Effect   = "Allow"
