@@ -3,10 +3,10 @@ data "aws_route53_zone" "hcl_playground_zone" {
   private_zone = false
 }
 
-resource "aws_route53_record" "this" {
-  zone_id = data.aws_route53_zone.hcl_playground_zone.zone_id
-  name    = "${var.subdomain}.hcl-playground.com"
-  type    = "A"
+#resource "aws_route53_record" "this" {
+#  zone_id = data.aws_route53_zone.hcl_playground_zone.zone_id
+#  name    = "${var.subdomain}.hcl-playground.com"
+#  type    = "A"
 
 #  alias {
 #    name                   = aws_lb.this.dns_name
