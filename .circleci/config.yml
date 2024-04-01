@@ -96,8 +96,6 @@ jobs:
             kubectl apply -f ./deployment/k8s/development/deployment.yml
             kubectl rollout status deployment/hcl-playground-development
 
-            kubectl delete service hcl-playground-development
-
             kubectl apply -f ./deployment/k8s/development/service.yml
 
             SERVICE_NAME="hcl-playground-development"

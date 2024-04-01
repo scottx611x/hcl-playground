@@ -12,6 +12,7 @@ resource "aws_lb_target_group" "this" {
   port     = 443
   protocol = "HTTPS"
   vpc_id   = aws_vpc.this.id
+  target_type = "ip"
 }
 
 resource "aws_lb_listener" "http" {
