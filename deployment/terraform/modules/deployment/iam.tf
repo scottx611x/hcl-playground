@@ -50,7 +50,8 @@ resource "aws_iam_policy" "eks_worker_policy" {
           "acm:Describe*",
           "elasticloadbalancing:Describe*",
           "ec2:Describe*",
-          "ec2:CreateSecurityGroup"
+          "ec2:CreateSecurityGroup",
+          "ec2:CreateTags"
         ]
         Effect   = "Allow"
         Resource = "*"
