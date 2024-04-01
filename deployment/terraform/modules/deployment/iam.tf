@@ -58,7 +58,8 @@ resource "aws_iam_policy" "eks_worker_policy" {
           "elasticloadbalancing:CreateListener",
           "elasticloadbalancing:CreateRule",
           "elasticloadbalancing:AddTags",
-          "wafv2:GetWebACLForResource"
+          "wafv2:GetWebACLForResource",
+          "waf-regional:GetWebACLForResource"
         ]
         Effect   = "Allow"
         Resource = "*"
