@@ -12,7 +12,7 @@ resource "aws_subnet" "this" {
   map_public_ip_on_launch = true
 
   tags = {
-    kubernetes.io/role/elb = "1"
+    "kubernetes.io/role/elb" = "1"
   }
 }
 
