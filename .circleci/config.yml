@@ -143,6 +143,7 @@ jobs:
   test:
     machine:
       image: ubuntu-2204:current
+    resource_class: small
     steps:
       - checkout
       - aws-auth

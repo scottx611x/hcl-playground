@@ -46,7 +46,8 @@ resource "aws_iam_policy" "eks_worker_policy" {
     Statement = [
       {
         Action = [
-          "acm:ListCertificates",
+          "acm:List*",
+          "acm:Describe*"
         ]
         Effect   = "Allow"
         Resource = "*"
