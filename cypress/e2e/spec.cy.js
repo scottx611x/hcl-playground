@@ -5,7 +5,14 @@ describe('Ensure that HCL Playground loads', () => {
     });
 });
 
-describe('Ensure that the base example produces the expected output when evalutated', () => {
+describe('Ensure that healthcheck endpoint is accessible', () => {
+    it('Visits the healthcheck endpoint', () => {
+        cy.visit('/health');
+        cy.contains('healthy');
+    });
+});
+
+describe('Ensure that the base example produces the expected output when evaluated', () => {
     it('Submits an HCL Playground sample', () => {
         cy.visit('/');
         cy.get('#evalutate').click()
