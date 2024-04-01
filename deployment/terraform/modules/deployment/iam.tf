@@ -39,7 +39,6 @@ resource "aws_iam_role" "eks_worker_role" {
 
 resource "aws_iam_policy" "eks_worker_policy" {
   name        = "eks-worker-policy"
-  path        = "/"
   description = "Policy for EKS workers"
 
   policy = jsonencode({
