@@ -53,7 +53,8 @@ resource "aws_iam_policy" "eks_worker_policy" {
           "ec2:CreateSecurityGroup",
           "ec2:CreateTags",
           "ec2:AuthorizeSecurityGroupIngress",
-          "elasticloadbalancing:CreateTargetGroup"
+          "elasticloadbalancing:CreateTargetGroup",
+          "elasticloadbalancing:AddTags"
         ]
         Effect   = "Allow"
         Resource = "*"
