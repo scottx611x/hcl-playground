@@ -19,3 +19,10 @@ spec:
         image: {{IMAGE_NAME}}
         ports:
         - containerPort: 8080
+        volumeMounts:
+          - name: hcl-playground-volume
+            mountPath: /scratch
+      volumes:
+        - name: hcl-playground-volume
+          persistentVolumeClaim:
+              claimName: hcl-playground-pvc

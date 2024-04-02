@@ -132,7 +132,8 @@ jobs:
           name: Deploy to EKS
           command: |
             kubectl apply -f ./deployment/k8s/development/deployment.yml
-            
+            kubectl apply -f ./deployment/k8s/development/pvc.yml
+
             kubectl apply -f ./deployment/k8s/development/service.yml
             kubectl apply -f ./deployment/k8s/development/ingress.yml
 
