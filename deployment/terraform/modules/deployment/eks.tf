@@ -23,7 +23,7 @@ data "aws_ssm_parameter" "eks_ami_image_id" {
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.eks_cluster_name}-"
   image_id      = nonsensitive(data.aws_ssm_parameter.eks_ami_image_id.value)
-  instance_type = "t3.micro"
+  instance_type = "t3.medium"
 
   user_data = base64encode(<<-USERDATA
     #!/bin/bash
@@ -40,8 +40,8 @@ resource "aws_eks_node_group" "this" {
   subnet_ids      = aws_subnet.this[*].id
 
   scaling_config {
-    desired_size = 6
-    max_size     = 8
+    desired_size = 4
+    max_size     = 4
     min_size     = 1
   }
 
