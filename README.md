@@ -1,6 +1,4 @@
 # hcl-playground
-<img src="./app/static/dog.png" height=100px  alt="Cute dog with HCL on its collar"/>
-
 https://github.com/scottx611x/hcl-playground/assets/5629547/c434d740-2370-4d9b-bf64-52e0eda41b64
 
 ## Beta Site
