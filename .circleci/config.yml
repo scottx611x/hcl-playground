@@ -121,14 +121,6 @@ jobs:
               --set serviceAccount.create=true \
               --set serviceAccount.name=aws-load-balancer-controller
       - run:
-          name: Install external DNS controller
-          command: |
-            helm install external-dns bitnami/external-dns \
-              --set provider=aws \
-              --set aws.zoneType=public \
-              --set domainFilters[0]=hcl-playground.com \
-              --set txtOwnerId=hcl-playground-development
-      - run:
           name: Verify AWS Load Balancer Controller Installation
           command: |
             kubectl get deployment -n kube-system aws-load-balancer-controller
