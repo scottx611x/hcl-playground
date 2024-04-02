@@ -22,6 +22,8 @@ spec:
         volumeMounts:
           - name: hcl-playground-volume
             mountPath: /scratch
+        securityContext:
+          runAsGroup: 1000
       initContainers:
         - name: fs-owner-change
           image: busybox
@@ -29,6 +31,9 @@ spec:
             - chown
             - "root:1000"
             - "/scratch"
+          volumeMounts:
+            - name: hcl-playground-volume
+              mountPath: /scratch
       securityContext:
         fsGroup: 1000
       volumes:
