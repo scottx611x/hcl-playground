@@ -7,7 +7,7 @@ data "aws_route53_zone" "hcl_playground_zone" {
 # loadbalancer controller does its magic
 data "aws_resourcegroupstaggingapi_resources" "this" {
   resource_type_filters = ["elasticloadbalancing:loadbalancer"]
-  tag_filters {
+  tag_filter {
     key    = "tag:elbv2.k8s.aws/cluster"
     values = [var.eks_cluster_name]
   }
