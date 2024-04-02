@@ -56,6 +56,7 @@ resource "aws_iam_policy" "eks_worker_policy" {
           "elasticloadbalancing:ModifyRule",
           "elasticloadbalancing:RegisterTargets",
           "elasticloadbalancing:DeregisterTargets",
+          "elasticloadbalancing:DeleteTargetGroup",
           "elasticloadbalancing:CreateTargetGroup",
           "elasticloadbalancing:CreateLoadBalancer",
           "elasticloadbalancing:CreateListener",
