@@ -5,11 +5,16 @@ data "aws_route53_zone" "hcl_playground_zone" {
 
 # TODO: the current order of operations doesn't allow for this to be provisioned until after the cluster is up and the
 # loadbalancer controller does its magic
-data "aws_lb" "this" {
-  filter {
-    name   = "tag:elbv2.k8s.aws/cluster"
+data "aws_resourcegroupstaggingapi_get_resources" "this" {
+  resource_type_filters = ["elasticloadbalancing:loadbalancer"]
+  tag_filters {
+    key    = "tag:elbv2.k8s.aws/cluster"
     values = [var.eks_cluster_name]
   }
+}
+
+data "aws_lb" "this" {
+  arn = data.aws_resourcegroupstaggingapi_get_resources.this.resource_tag_mapping_list[0].resource_arn
 }
 
 resource "aws_route53_record" "example" {
