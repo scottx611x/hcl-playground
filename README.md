@@ -45,9 +45,9 @@ https://github.com/scottx611x/hcl-playground/assets/5629547/c434d740-2370-4d9b-b
 
 3. **Run the Docker container:**
    ```bash
-   docker run -v /tmp:/scratch -it -p 5000:8080 hcl-playground
+   docker run -v /tmp:/scratch -it -p 8080:8080 hcl-playground
    ```
-   Access the application at `http://localhost:5000`.
+   Access the application at `http://localhost:8080`.
 
 ## CI/CD Pipeline (CircleCI)
 

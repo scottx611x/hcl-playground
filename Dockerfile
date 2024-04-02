@@ -15,7 +15,7 @@ COPY app/ /app
 RUN adduser --disabled-password --gecos '' app-user
 USER app-user
 
-EXPOSE 8000
+EXPOSE 8080
 
 # TODO: this will be an external volume mount in prod
 VOLUME ["/scratch"]

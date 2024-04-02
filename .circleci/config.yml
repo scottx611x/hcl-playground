@@ -153,7 +153,7 @@ jobs:
             TAG=386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 386710959426.dkr.ecr.us-east-1.amazonaws.com
             docker pull $TAG
-            docker run -p 8080:8000 -v /tmp:/scratch $TAG
+            docker run -p 8080:8080 -v /tmp:/scratch $TAG
           background: true
       - cypress/install
       - cypress/run-tests
