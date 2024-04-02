@@ -3,10 +3,10 @@ resource "aws_eks_cluster" "this" {
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
-    subnet_ids = aws_subnet.this[*].id
-    security_group_ids = [aws_security_group.eks_sg.id]
+    subnet_ids              = aws_subnet.this[*].id
+    security_group_ids      = [aws_security_group.eks_sg.id]
     endpoint_private_access = true
-    endpoint_public_access = true
+    endpoint_public_access  = true
   }
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.
@@ -46,7 +46,7 @@ resource "aws_eks_node_group" "this" {
   }
 
   launch_template {
-    id = aws_launch_template.this.id
+    id      = aws_launch_template.this.id
     version = "$Latest"
   }
 

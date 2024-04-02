@@ -11,8 +11,8 @@ resource "aws_ecr_lifecycle_policy" "my_lifecycle_policy" {
         rulePriority = 1
         description  = "Expire old images"
         selection = {
-          tagStatus = "any"
-          countType = "imageCountMoreThan"
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
           countNumber = 5
         }
         action = {
