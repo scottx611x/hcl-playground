@@ -14,7 +14,7 @@ data "aws_resourcegroupstaggingapi_resources" "this" {
 }
 
 data "aws_lb" "this" {
-  arn = data.aws_resourcegroupstaggingapi_get_resources.this.resource_tag_mapping_list[0].resource_arn
+  arn = data.aws_resourcegroupstaggingapi_resources.this.resource_tag_mapping_list[0].resource_arn
 }
 
 resource "aws_route53_record" "example" {
