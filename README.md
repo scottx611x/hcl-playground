@@ -7,7 +7,7 @@ https://development.hcl-playground.com/
 
 ## Description
 
-HCL Playground App is an application designed to provide a playground/sandbox environment for evaluating HashiCorp Configuration Language (HCL) code on-demand.
+HCL Playground is an application designed to provide a playground/sandbox environment for evaluating HashiCorp Configuration Language (HCL) code on-demand.
 The aim of this project is avoid the [toil/overhead required to simply evaluate some HCL-code](https://github.com/hashicorp/terraform/issues/24094#issuecomment-1825482867) where a user currently has to:
 - Install terraform
 - Setup a new project
