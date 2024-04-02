@@ -11,7 +11,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: [hcl-playground-pvc]
+    volumeHandle: hcl-playground-pvc
 
 ---
 kind: PersistentVolumeClaim
@@ -21,7 +21,6 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: ""
   volumeName: efs-pv
   resources:
     requests:
