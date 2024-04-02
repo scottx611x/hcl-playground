@@ -1,2 +1,19 @@
-*.pyc
-__pycache__
+# Git
+.git
+.gitignore
+.gitattributes
+
+
+# CI
+.circleci
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+
+
+*.md
+.DS_Store

@@ -1,3 +1,6 @@
 .idea
 .terraform
+.terraform.lock.hcl
 *.pyc
+.DS_Store
+node_modules

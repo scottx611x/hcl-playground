@@ -1,12 +1,15 @@
-from flask import Flask, render_template, request, url_for
+from functools import cache
+
+from flask import Flask, render_template, request
 from bs4 import BeautifulSoup
 import requests
 
-from app.backend.terraform_utils import handler
+from backend.terraform_utils import handler
 
 app = Flask(__name__)
 
 
+@cache
 def fetch_terraform_versions():
     url = "https://releases.hashicorp.com/terraform/"
     versions = []
@@ -49,3 +52,8 @@ def index():
         return render_template('index.html', code=code, output=output, selected_terraform_version=version, terraform_versions=fetch_terraform_versions())
 
     return render_template('index.html', output=output, terraform_versions=fetch_terraform_versions())
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    return "healthy", 200

@@ -1,0 +1,30 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: efs-pv
+spec:
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: efs.csi.aws.com
+
+    # TODO: source this dynamically
+    volumeHandle: fs-090b1d2ac7526b8f3
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: efs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: efs-pv
+  resources:
+    requests:
+      storage: 10Gi

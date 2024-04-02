@@ -1,77 +1,219 @@
 version: 2.1
-
 orbs:
-  aws-cli: circleci/aws-cli@x.y  # Use the latest version of the AWS CLI orb
-  python: circleci/python@x.y   # Use the latest version of the Python orb
+  cypress: cypress-io/cypress@3.3.1
+
+pr_only: &pr_only
+  filters:
+    branches:
+      ignore: main
+
+commands:
+  aws-auth:
+    steps:
+      - run:
+          name: Obtain Temporary AWS creds
+          command: |
+            
+            export AWS_ROLE_ARN=arn:aws:iam::386710959426:role/hcl-playground-ci
+            export AWS_DEFAULT_REGION=us-east-1
+
+            if ! command -v aws &> /dev/null; then
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                sudo ./aws/install --update
+
+                which aws
+            else
+                echo "awscli is already installed."
+            fi
+
+            # use the OpenID Connect token to obtain AWS credentials
+            read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN \<<< \
+              $(aws sts assume-role-with-web-identity \
+               --role-arn ${AWS_ROLE_ARN} \
+               --role-session-name "CircleCI-${CIRCLE_WORKFLOW_ID}-${CIRCLE_JOB}" \
+               --web-identity-token $CIRCLE_OIDC_TOKEN \
+               --duration-seconds 3600 \
+               --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+               --output text)
+
+            # Export AWS credentials to BASH_ENV for consumption in subsequent jobs
+            echo "export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}" >> $BASH_ENV
+
+            source $BASH_ENV
+
+            # interact with AWS
+            aws --no-cli-pager sts get-caller-identity
 
 jobs:
-  build-and-deploy-flask-app:
+  push-image:
     docker:
-      - image: cimg/python:3.x  # Use an image with Python 3.x
+      - image: cimg/base:stable
+    parameters:
+      ecr_repo_name:
+        type: string
     steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
-      - python/install-packages:
-          pkg-manager: pip
+      - aws-auth
       - run:
-          name: Install Zappa
-          command: pip install zappa==X.X.X
-      - run:
-          name: Zappa Deploy
-          command: zappa deploy production  # Adjust 'production' to your Zappa stage
-
-  provision-infra:
-    docker:
-      - image: hashicorp/terraform:light
-    steps:
-      - checkout
-      - run:
-          name: Terraform Init
-          command: terraform init
-      - run:
-          name: Terraform Apply
-          command: terraform apply -auto-approve
-
-  build-and-deploy-lambda:
-    docker:
-      - image: circleci/python:3.x  # Use a Python image for building Docker images
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build Docker Image
-          command: docker build -t your-image-name .
-      - aws-cli/setup
-      - run:
-          name: Authenticate with ECR
-          command: $(aws ecr get-login --no-include-email --region $AWS_REGION)
-      - run:
-          name: Tag and Push Docker Image
+          name: Build and push Docker image
           command: |
-            docker tag your-image-name:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-image-name:latest
-            docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-image-name:latest
-      - run:
-          name: Update Lambda Function
-          command: aws lambda update-function-code --function-name your-lambda-function-name --image-uri $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-image-name:latest
+            TAG=386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
+            docker build -t $TAG .
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 386710959426.dkr.ecr.us-east-1.amazonaws.com
+            docker push $TAG
 
-  run-smoke-tests:
+  eks-deploy:
     docker:
-      - image: appropriate/curl  # Any lightweight image with curl
+      - image: cimg/base:stable
+    parameters:
+      eks_cluster_name:
+        type: string
     steps:
+      - checkout
+      - aws-auth
       - run:
-          name: Smoke Test
-          command: curl -f https://your-api-gateway-url/endpoint || exit 1
+          name: Install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+            chmod +x ./kubectl
+            sudo mv ./kubectl /usr/local/bin/kubectl
+      - run:
+          name: Install Helm
+          command: |
+            curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+            sudo apt-get install apt-transport-https --yes
+            echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+            sudo apt-get update
+            sudo apt-get install helm
+      - run:
+          name: Set up Kubernetes configuration
+          command: |
+            aws eks --region us-east-1 update-kubeconfig --name hcl-playground-development
+      - run:
+          name: Create IAM Policy for AWS Load Balancer Controller
+          command: |
+            POLICY_NAME="AWSLoadBalancerControllerIAMPolicy"
+            POLICY_ARN=$(aws iam list-policies --query "Policies[?PolicyName=='${POLICY_NAME}'].Arn" --output text)
+
+            if [ -z "$POLICY_ARN" ]; then
+                echo "Policy does not exist, creating..."
+                curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.1/docs/install/iam_policy.json
+                POLICY_ARN=$(aws iam create-policy \
+                    --policy-name ${POLICY_NAME} \
+                    --policy-document file://iam_policy.json \
+                    --query 'Policy.Arn' --output text)
+            else
+                echo "Policy already exists: $POLICY_ARN"
+            fi
+      - run:
+          name: Install AWS Load Balancer Controller
+          command: |
+            helm repo add eks https://aws.github.io/eks-charts
+            helm repo update
+            helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+              --namespace kube-system \
+              --set clusterName=hcl-playground-development \
+              --set serviceAccount.create=true \
+              --set serviceAccount.name=aws-load-balancer-controller
+      - run:
+          name: Verify AWS Load Balancer Controller Installation
+          command: |
+            kubectl get deployment -n kube-system aws-load-balancer-controller
+      - run:
+          name: Replace image name in Kubernetes deployment file
+          command: |
+            sed -i "s|{{IMAGE_NAME}}|386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}|g" ./deployment/k8s/development/deployment.yml
+      - run:
+          name: Deploy to EKS
+          command: |
+            kubectl apply -f ./deployment/k8s/development/deployment.yml
+            kubectl apply -f ./deployment/k8s/development/pvc.yml
+
+            kubectl apply -f ./deployment/k8s/development/service.yml
+            kubectl apply -f ./deployment/k8s/development/ingress.yml
+
+            kubectl rollout status deployment/hcl-playground-development
+
+            kubectl get svc,ingress
+
+  test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: medium
+    steps:
+      - checkout
+      - aws-auth
+      - run:
+          name: Pull and run test image
+          command: |
+            TAG=386710959426.dkr.ecr.us-east-1.amazonaws.com/hcl-playground-development:${CIRCLE_SHA1}
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 386710959426.dkr.ecr.us-east-1.amazonaws.com
+            docker pull $TAG
+            docker run -p 8080:8080 -v /tmp:/scratch $TAG
+          background: true
+      - cypress/install
+      - cypress/run-tests
+
+  setup-infra:
+    docker:
+      - image: cimg/base:stable
+    parameters:
+      project_path:
+        type: string
+      auto_approve:
+        type: boolean
+        default: false
+    steps:
+      - checkout
+      - run:
+          name: Install tfenv
+          command: |
+            git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+            echo 'export PATH="$HOME/.tfenv/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Install Terraform version
+          command: |
+            tfenv install 1.7.4
+            tfenv use 1.7.4
+      - aws-auth
+      - run:
+          name: Terraform init
+          command: |
+            cd <<parameters.project_path>>
+            terraform init
+      - run:
+          name: Terraform plan
+          command: |
+            cd <<parameters.project_path>>
+            terraform plan
+      - run:
+          name: Terraform apply
+          command: |
+            cd <<parameters.project_path>>
+            terraform apply <<#parameters.auto_approve>> --auto-approve <</parameters.auto_approve>>
 
 workflows:
-  version: 2
-  build-deploy:
+  build-deploy-dev:
     jobs:
-      - build-and-deploy-flask-app
-      - provision-infra:
+      - setup-infra:
+          project_path: deployment/terraform/development
+          auto_approve: true
+      - push-image:
+          <<: *pr_only
+          ecr_repo_name: hcl-playground-development
+      - test:
+          <<: *pr_only
           requires:
-            - build-and-deploy-flask-app
-      - build-and-deploy-lambda:
+            - push-image
+      - eks-deploy:
+          <<: *pr_only
+          eks_cluster_name: hcl-playground-development
           requires:
-            - provision-infra
-      - run-smoke-tests:
-          requires:
-            - build-and-deploy-lambda
+            - setup-infra
+            - test
