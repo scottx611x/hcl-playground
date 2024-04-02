@@ -1,6 +1,10 @@
 # hcl-playground
 <img src="./app/static/dog.png" height=100px  alt="Cute dog with HCL on its collar"/>
 
+## Beta Site
+
+https://development.hcl-playground.com/
+
 ## Description
 
 HCL Playground App is an application designed to provide a playground/sandbox environment for evaluating HashiCorp Configuration Language (HCL) code on-demand.
