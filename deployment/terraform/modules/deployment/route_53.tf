@@ -18,7 +18,7 @@ data "aws_lb" "this" {
 }
 
 resource "aws_route53_record" "this" {
-  zone_id = aws_route53_zone.hcl_playground_zone.zone_id
+  zone_id = data.aws_route53_zone.hcl_playground_zone.zone_id
   name    = "development.hcl-playground.com"
   type    = "A"
 
