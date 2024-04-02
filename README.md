@@ -1,6 +1,8 @@
 # hcl-playground
 <img src="./app/static/dog.png" height=100px  alt="Cute dog with HCL on its collar"/>
 
+https://github.com/scottx611x/hcl-playground/assets/5629547/c434d740-2370-4d9b-bf64-52e0eda41b64
+
 ## Beta Site
 
 https://development.hcl-playground.com/
@@ -21,11 +23,7 @@ The aim of this project is avoid the [toil/overhead required to simply evaluate 
 - `terraform console`
 - rinse and repeat
 
-If you've been in the depths of attempting to get "creative" with cobbling together the terraform functions available to massage some complex inputs you may catch my drift.
-
-### Demo
-https://github.com/scottx611x/hcl-playground/assets/5629547/c434d740-2370-4d9b-bf64-52e0eda41b64
-
+If you've been in the depths of attempting to get "creative" with cobbling together the terraform functions available to massage some complex inputs you may catch my drift
 
 ## Getting Started
 
@@ -80,7 +78,7 @@ The CI configuration is defined in `.circleci/config.yml`. The key jobs in the p
 The `build-deploy-dev` workflow orchestrates the above jobs:
 
 - We start by setting up any required backing infrastructure using Terraform.
-- Then we build and pushe the Docker image to ECR, runs tests against the image we just built, and if successful finally deploys to our EKS cluster
+- Then we build and push the Docker image to ECR, runs tests against the image we just built, and if successful finally deploys to our EKS cluster
 - The workflow is configured to run on pull requests only, excluding the `main` branch as development efforts are still in progress to get to a production-ready state
 
 ## Cypress-Based Tests
