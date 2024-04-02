@@ -11,7 +11,9 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: hcl-playground-pvc
+
+    # TODO: source this dynamically
+    volumeHandle: fs-090b1d2ac7526b8f3
 
 ---
 kind: PersistentVolumeClaim
