@@ -54,6 +54,7 @@ resource "aws_iam_policy" "eks_worker_policy" {
           "ec2:CreateTags",
           "ec2:CreateVolume",
           "ec2:AttachVolume",
+          "ec2:Revoke*",
           "ec2:AuthorizeSecurityGroupIngress",
           "elasticloadbalancing:ModifyRule",
           "elasticloadbalancing:RegisterTargets",
