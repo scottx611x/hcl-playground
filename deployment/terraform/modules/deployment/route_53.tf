@@ -17,9 +17,9 @@ data "aws_lb" "this" {
   arn = data.aws_resourcegroupstaggingapi_resources.this.resource_tag_mapping_list[0].resource_arn
 }
 
-resource "aws_route53_record" "example" {
-  zone_id = "<your-hosted-zone-id>"
-  name    = "example.yourdomain.com"
+resource "aws_route53_record" "this" {
+  zone_id = aws_route53_zone
+  name    = "development.hcl-playground.com"
   type    = "A"
 
   alias {
