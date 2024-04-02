@@ -25,4 +25,4 @@ spec:
       volumes:
         - name: hcl-playground-volume
           persistentVolumeClaim:
-              claimName: hcl-playground-pvc
+              claimName: efs-pv
