@@ -4,7 +4,7 @@ data "aws_route53_zone" "hcl_playground_zone" {
 }
 
 # TODO: the current order of operations doesn't allow for this to be provisioned until after the cluster is up and the
-# loadbalancer controller does its magic
+#   loadbalancer controller does its magic
 data "aws_resourcegroupstaggingapi_resources" "this" {
   resource_type_filters = ["elasticloadbalancing:loadbalancer"]
   tag_filter {
@@ -18,7 +18,7 @@ data "aws_lb" "this" {
 }
 
 resource "aws_route53_record" "this" {
-  zone_id = aws_route53_zone
+  zone_id = aws_route53_zone.hcl_playground_zone.zone_id
   name    = "development.hcl-playground.com"
   type    = "A"
 
