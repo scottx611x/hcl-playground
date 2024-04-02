@@ -40,8 +40,8 @@ resource "aws_eks_node_group" "this" {
   subnet_ids      = aws_subnet.this[*].id
 
   scaling_config {
-    desired_size = 2
-    max_size     = 4
+    desired_size = 6
+    max_size     = 8
     min_size     = 1
   }
 
