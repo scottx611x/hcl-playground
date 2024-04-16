@@ -9,6 +9,15 @@ WORKDIR app/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+COPY requirements-dev.txt .
+ARG INSTALL_DEV_DEPS=false
+RUN if [ "$INSTALL_DEV_DEPS" = "true" ] ; then pip install -r requirements-dev.txt ; fi
+RUN rm requirements-dev.txt
+
+COPY tests tests
+RUN if [ "$INSTALL_DEV_DEPS" = "false" ] ; then rm -r tests; fi
+
+
 COPY app/ /app
 
 # Create a non-root user and switch to it
