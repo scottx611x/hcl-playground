@@ -156,7 +156,7 @@ jobs:
           command: |
             mkdir -p $(pwd)/test-results
             chmod -R 777 $(pwd)/test-results
-            docker run -v $(pwd)/tests:tests -v $(pwd)/test-results:test-results:rw hcl-playground python -m pytest -p no:cacheprovider --junitxml=/test-results/junit.xml
+            docker run -v $(pwd)/tests:/tests -v $(pwd)/test-results:/test-results:rw hcl-playground python -m pytest -p no:cacheprovider --junitxml=/test-results/junit.xml
       - store_test_results:
           path: test-results
 
