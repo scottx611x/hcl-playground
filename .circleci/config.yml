@@ -141,7 +141,7 @@ jobs:
 
             kubectl get svc,ingress
 
-  run_unit_tests:
+  unit-tests:
     machine:
       image: ubuntu-2204:current
       resource_class: small
@@ -160,7 +160,7 @@ jobs:
       - store_test_results:
           path: test-results
 
-  e2e-test:
+  e2e-tests:
     machine:
       image: ubuntu-2204:current
     resource_class: medium
@@ -220,7 +220,7 @@ jobs:
 workflows:
   build-deploy-dev:
     jobs:
-      - run_unit_tests:
+      - unit-tests:
           <<: *pr_only
       - setup-infra:
           <<: *pr_only
@@ -229,7 +229,7 @@ workflows:
       - push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
-      - e2e-test:
+      - e2e-tests:
           <<: *pr_only
           requires:
             - push-image
@@ -238,4 +238,5 @@ workflows:
           eks_cluster_name: hcl-playground-development
           requires:
             - setup-infra
-            - test
+            - e2e-tests
+            - unit-tests
