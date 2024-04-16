@@ -8,39 +8,46 @@ import sys
 import uuid
 
 
-def extract_locals_block(text):
+def extract_locals_blocks(text):
     """
-    Extracts the 'locals' block from a given HCL text and returns it along with the rest of the text.
+    Extracts all 'locals' blocks from a given HCL text and returns them along with the rest of the text.
 
-    :param text: The HCL text containing a 'locals' block.
-    :return: A tuple containing the 'locals' block content and the rest of the text.
+    :param text: The HCL text containing 'locals' blocks.
+    :return: A tuple containing a list of all 'locals' block contents and the rest of the text.
     """
+    locals_blocks = []
+    rest_of_text = text
     start_pattern = re.compile(r'locals\s*{')
-    start_match = start_pattern.search(text)
 
-    if not start_match:
-        return None, text  # No locals block found
+    while True:
+        start_match = start_pattern.search(rest_of_text)
+        if not start_match:
+            break  # No more locals block found
 
-    # Find the start of the locals block
-    start_index = start_match.start()
+        # Find the start of the locals block
+        start_index = start_match.start()
 
-    # Count braces to find the end of the locals block
-    brace_count = 1
-    i = start_match.end()
-    while i < len(text) and brace_count > 0:
-        if text[i] == '{':
-            brace_count += 1
-        elif text[i] == '}':
-            brace_count -= 1
-        i += 1
+        # Count braces to find the end of the locals block
+        brace_count = 1
+        i = start_match.end()
+        while i < len(rest_of_text) and brace_count > 0:
+            if rest_of_text[i] == '{':
+                brace_count += 1
+            elif rest_of_text[i] == '}':
+                brace_count -= 1
+            i += 1
 
-    # Extract the locals block and the rest of the text
-    locals_block = text[start_index:i]
-    rest_of_text = text[:start_index] + text[i:]
+        # Extract the locals block
+        locals_block = rest_of_text[start_index:i]
+        locals_blocks.append(locals_block)
 
+        # Update rest_of_text to exclude the current locals block
+        rest_of_text = rest_of_text[:start_index] + rest_of_text[i:]
+
+    # Clean up rest_of_text to remove line comments
     rest_of_text = "\n".join(line for line in rest_of_text.splitlines() if not line.startswith("//"))
 
-    return locals_block, rest_of_text
+    return "\n".join(locals_blocks), rest_of_text
 
 
 def run_subprocess(command, **kwargs):
@@ -87,7 +94,7 @@ def handler(event) -> str:
     code = body.get('code', '') if body else ''
     print(f"CODE: {code}", file=sys.stderr)
 
-    locals_block, code = extract_locals_block(code)
+    locals_block, code = extract_locals_blocks(code)
 
     print(f"LOCALS BLOCK: {locals_block}", file=sys.stderr)
     print(f"CODE: {code}", file=sys.stderr)

@@ -141,7 +141,26 @@ jobs:
 
             kubectl get svc,ingress
 
-  test:
+  run_unit_tests:
+    machine:
+      image: ubuntu-2204:current
+      resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Build Docker image including dev dependencies
+          command: |
+            docker build --build-arg INSTALL_DEV_DEPS=true -t hcl-playground .
+      - run:
+          name: Run Pytest within our container
+          command: |
+            mkdir -p $(pwd)/test-results
+            chmod -R 777 $(pwd)/test-results
+            docker run -v $(pwd)/tests:tests -v $(pwd)/test-results:test-results:rw hcl-playground python -m pytest -p no:cacheprovider --junitxml=/test-results/junit.xml
+      - store_test_results:
+          path: test-results
+
+  e2e-test:
     machine:
       image: ubuntu-2204:current
     resource_class: medium
@@ -201,13 +220,16 @@ jobs:
 workflows:
   build-deploy-dev:
     jobs:
+      - run_unit_tests:
+          <<: *pr_only
       - setup-infra:
+          <<: *pr_only
           project_path: deployment/terraform/development
           auto_approve: true
       - push-image:
           <<: *pr_only
           ecr_repo_name: hcl-playground-development
-      - test:
+      - e2e-test:
           <<: *pr_only
           requires:
             - push-image
