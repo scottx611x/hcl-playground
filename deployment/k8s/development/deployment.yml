@@ -27,7 +27,7 @@ spec:
       initContainers:
         - name: fs-owner-change
           image: busybox
-          command: [ 'sh', '-c', 'chown root:1000 /scratch && chmod 775 /scratch' ]
+          command: [ 'sh', '-c', 'chown root:1000 /scratch && chmod 777 /scratch' ]
           volumeMounts:
             - name: hcl-playground-volume
               mountPath: /scratch

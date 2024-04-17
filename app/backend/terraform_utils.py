@@ -79,7 +79,7 @@ def handler(event) -> str:
     os.mkdir(f"/scratch/{run_id}")
 
     # Copy .tfenv folder
-    shutil.copytree('/home/root/.tfenv', f'/scratch/{run_id}/.tfenv', dirs_exist_ok=True)
+    shutil.copytree('/home/root/.tfenv', f'/scratch/.tfenv', dirs_exist_ok=True)
 
     # Parse the event data
     event_data = event
@@ -111,11 +111,11 @@ def handler(event) -> str:
 
     # Set Terraform version with tfenv
     run_subprocess([
-        f'/scratch/{run_id}/.tfenv/bin/tfenv',
+        f'/scratch/.tfenv/bin/tfenv',
         'use', f"latest:^{terraform_version}"
     ], env={'BASHLOG_COLOURS': "0", 'TFENV_INSTALL_DIR': '/scratch/tfenv_installs'})
 
-    terraform_path = f"/scratch/{run_id}/.tfenv/versions/{terraform_version}/terraform"
+    terraform_path = f"/scratch/.tfenv/versions/{terraform_version}/terraform"
 
     # Format the Terraform configuration file
     run_subprocess([terraform_path, 'fmt', '-no-color', 'main.tf'], cwd=f'/scratch/{run_id}', check=False)
