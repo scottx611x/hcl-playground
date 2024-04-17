@@ -79,7 +79,16 @@ The `build-deploy-dev` workflow orchestrates the above jobs:
 - Then we build and push the Docker image to ECR, runs tests against the image we just built, and if successful finally deploys to our EKS cluster
 - The workflow is configured to run on pull requests only, excluding the `main` branch as development efforts are still in progress to get to a production-ready state
 
-## Cypress-Based Tests
+## Testing
+
+### Unit tests
+
+```shell
+$ docker build --build-arg INSTALL_DEV_DEPS=true -t hcl-playground .
+$ docker run -v /tmp:/scratch -it hcl-playground python -m pytest -p no:cacheprovider
+```
+
+### Cypress-Based E2E Tests
 
 To run Cypress-based tests:
 
