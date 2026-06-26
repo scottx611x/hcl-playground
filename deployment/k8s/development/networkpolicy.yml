@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hcl-playground-development
+spec:
+  podSelector:
+    matchLabels:
+      app: hcl-playground-development
+  policyTypes:
+    - Ingress
+    - Egress
+  # Ingress: only allow traffic to the app port (the ingress controller reaches
+  # it on 8080). Adjust the namespace selector to your ingress if stricter.
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8080
+  # Egress: DNS only. Backs the offline-eval model — terraform/tofu can't reach
+  # provider registries or any other network from inside the pod.
+  egress:
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

@@ -1,140 +1,212 @@
 #!/usr/bin/env python3
+"""Safely evaluate HCL expressions with `terraform`/`tofu console`.
 
-import re
+Hardened model (see SECURITY notes inline):
+- The engine + version are validated against pre-installed binaries; nothing
+  user-supplied is ever passed to a shell.
+- Only `locals` blocks and bare console expressions are accepted — providers,
+  resources, data sources, modules and backends are rejected, so `init` never
+  downloads plugins and never touches the network.
+- Each run is wrapped in a wall-clock timeout plus CPU/file/process rlimits.
+"""
+
 import os
+import re
+import resource
 import shutil
 import subprocess
-import sys
 import uuid
+
+SCRATCH_DIR = os.environ.get("HCL_SCRATCH_DIR", "/scratch")
+
+# Pre-installed engine versions live here (baked into the image). The presence of
+# the binary IS the allowlist — we never run a version that isn't on disk.
+ENGINES = {
+    "terraform": {"root": "/opt/tfenv/versions", "bin": "terraform"},
+    "tofu": {"root": "/opt/tofuenv/versions", "bin": "tofu"},
+}
+
+_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+
+# Block types that would pull providers, hit the network, or read state/files.
+# Matches a top-level block opener like `provider "aws" {` but not an expression
+# such as `data = local.x` (assignments contain `=` before the brace).
+_DISALLOWED_BLOCK_RE = re.compile(
+    r"(?m)^\s*(provider|resource|data|module|terraform|backend|output|variable|"
+    r"import|check|moved|removed|ephemeral)\b[^\n=]*\{"
+)
+
+# Filesystem-reading functions — `file("/etc/passwd")` et al. would leak container
+# files even with no network. HCL can't alias functions, so the literal name must
+# appear; a denylist is robust. (abspath/dirname/basename are string-only, allowed.)
+_DISALLOWED_FUNC_RE = re.compile(r"\b(file\w*|templatefile)\s*\(")
+
+MAX_CODE_BYTES = 64 * 1024
+_TIMEOUT_SECONDS = 12
+
+
+class EvaluationError(ValueError):
+    """Raised for invalid/disallowed input — surfaced to the user as a 400."""
 
 
 def extract_locals_blocks(text):
-    """
-    Extracts all 'locals' blocks from a given HCL text and returns them along with the rest of the text.
+    """Extract all top-level ``locals { ... }`` blocks from HCL text.
 
-    :param text: The HCL text containing 'locals' blocks.
-    :return: A tuple containing a list of all 'locals' block contents and the rest of the text.
+    Returns ``(joined_locals_blocks, rest_of_text)``. Brace-matched so nested
+    blocks are handled. (Unchanged behavior — covered by tests.)
     """
     locals_blocks = []
     rest_of_text = text
-    start_pattern = re.compile(r'locals\s*{')
+    start_pattern = re.compile(r"locals\s*{")
 
     while True:
         start_match = start_pattern.search(rest_of_text)
         if not start_match:
-            break  # No more locals block found
+            break
 
-        # Find the start of the locals block
         start_index = start_match.start()
-
-        # Count braces to find the end of the locals block
         brace_count = 1
         i = start_match.end()
         while i < len(rest_of_text) and brace_count > 0:
-            if rest_of_text[i] == '{':
+            if rest_of_text[i] == "{":
                 brace_count += 1
-            elif rest_of_text[i] == '}':
+            elif rest_of_text[i] == "}":
                 brace_count -= 1
             i += 1
 
-        # Extract the locals block
-        locals_block = rest_of_text[start_index:i]
-        locals_blocks.append(locals_block)
-
-        # Update rest_of_text to exclude the current locals block
+        locals_blocks.append(rest_of_text[start_index:i])
         rest_of_text = rest_of_text[:start_index] + rest_of_text[i:]
 
-    # Clean up rest_of_text to remove line comments
-    rest_of_text = "\n".join(line for line in rest_of_text.splitlines() if not line.startswith("//"))
-
+    rest_of_text = "\n".join(
+        line for line in rest_of_text.splitlines() if not line.startswith("//")
+    )
     return "\n".join(locals_blocks), rest_of_text
 
 
-def run_subprocess(command, **kwargs):
-    _kwargs = dict(check=True, shell=True, stdout=sys.stderr, stderr=sys.stderr, text=True)
-    _kwargs.update(kwargs)
+def resolve_binary(engine, version):
+    """Map a validated (engine, version) to a pre-installed binary path.
 
+    Raises EvaluationError if the engine is unknown, the version isn't a strict
+    semver, or that version isn't installed in the image.
+    """
+    if engine not in ENGINES:
+        raise EvaluationError("Unknown engine (expected 'terraform' or 'tofu').")
+    if not _VERSION_RE.match(version or ""):
+        raise EvaluationError("Invalid version (expected e.g. 1.9.0).")
+    cfg = ENGINES[engine]
+    path = os.path.join(cfg["root"], version, cfg["bin"])
+    # Defense-in-depth: ensure the resolved path stays under the engine root.
+    if os.path.commonpath([os.path.realpath(path), cfg["root"]]) != cfg["root"]:
+        raise EvaluationError("Invalid version.")
+    if not os.path.isfile(path):
+        raise EvaluationError("That version isn't available.")
+    return path
+
+
+def installed_versions(engine):
+    """Versions actually installed in the image for an engine, newest first.
+
+    This is the dropdown's source of truth — no network, and it can only ever
+    offer versions that ``resolve_binary`` will accept.
+    """
+    cfg = ENGINES.get(engine)
+    if not cfg:
+        return []
     try:
-        # Execute the command, capture stdout and stderr
-        result = subprocess.run(" ".join(command), **_kwargs)
+        names = os.listdir(cfg["root"])
+    except OSError:
+        return []
+    versions = [
+        name
+        for name in names
+        if _VERSION_RE.match(name)
+        and os.path.isfile(os.path.join(cfg["root"], name, cfg["bin"]))
+    ]
+    return sorted(versions, key=lambda v: [int(p) for p in v.split(".")], reverse=True)
 
-        # Print the standard output of the command
-        if result.stdout:
-            print("Output:", result.stderr, file=sys.stdout)
 
-        # Print the standard error of the command, if any
-        if result.stderr:
-            print("Errors:", result.stderr, file=sys.stderr)
+def _validate_code(code):
+    if code is None:
+        raise EvaluationError("No code provided.")
+    if len(code.encode("utf-8")) > MAX_CODE_BYTES:
+        raise EvaluationError("Input too large.")
+    if _DISALLOWED_BLOCK_RE.search(code):
+        raise EvaluationError(
+            "Only `locals` blocks and console expressions are allowed — "
+            "providers, resources, data sources, modules and backends are not."
+        )
+    if _DISALLOWED_FUNC_RE.search(code):
+        raise EvaluationError(
+            "Filesystem functions (file(), templatefile(), fileset(), ...) "
+            "aren't allowed."
+        )
 
-    except subprocess.CalledProcessError as e:
-        # If the command failed, print the error and exit
-        print(f"Command failed with error code {e.returncode}:", e.stderr, file=sys.stderr)
-        raise e  # Optionally re-raise the exception if you want calling code to handle it
 
-    return result
+def _set_limits():
+    """Child-process rlimits (runs in the forked child before exec).
 
-def handler(event) -> str:
-    run_id = uuid.uuid4().hex
+    NB: we intentionally do NOT set RLIMIT_AS — Go binaries reserve huge virtual
+    address space and would be killed. Memory is bounded by the container/cgroup
+    limit instead. Here we cap CPU time, output file size, and process count.
+    """
+    resource.setrlimit(resource.RLIMIT_CPU, (_TIMEOUT_SECONDS, _TIMEOUT_SECONDS))
+    resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
+    resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
 
-    os.mkdir(f"/scratch/{run_id}")
 
-    # Copy .tfenv folder
-    shutil.copytree('/home/root/.tfenv', f'/scratch/{run_id}/.tfenv', dirs_exist_ok=True)
-
-    # Parse the event data
-    event_data = event
-
-    # Log the event data
-    print(f"EVENT_DATA: {event_data}", file=sys.stderr)
-
-    # Extract elements from the event data
-    body = event_data.get('body', '')
-    print(f"BODY: {body}", file=sys.stderr)
-
-    code = body.get('code', '') if body else ''
-    print(f"CODE: {code}", file=sys.stderr)
-
-    locals_block, code = extract_locals_blocks(code)
-
-    print(f"LOCALS BLOCK: {locals_block}", file=sys.stderr)
-    print(f"CODE: {code}", file=sys.stderr)
-
-    path_parameters = event_data.get('pathParameters', '')
-    print(f"PATH_PARAMETERS: {path_parameters}", file=sys.stderr)
-
-    terraform_version = path_parameters.get('terraform_version', '') if path_parameters else ''
-    print(f"TERRAFORM_VERSION: {terraform_version}", file=sys.stderr)
-
-    if locals_block is not None:
-        with open(f'/scratch/{run_id}/main.tf', 'a') as f:
-            f.write(locals_block)
-
-    # Set Terraform version with tfenv
-    run_subprocess([
-        f'/scratch/{run_id}/.tfenv/bin/tfenv',
-        'use', f"latest:^{terraform_version}"
-    ], env={'BASHLOG_COLOURS': "0", 'TFENV_INSTALL_DIR': '/scratch/tfenv_installs'})
-
-    terraform_path = f"/scratch/{run_id}/.tfenv/versions/{terraform_version}/terraform"
-
-    # Format the Terraform configuration file
-    run_subprocess([terraform_path, 'fmt', '-no-color', 'main.tf'], cwd=f'/scratch/{run_id}', check=False)
-
-    # Initialize Terraform
-    run_subprocess([terraform_path, 'init', '-no-color'], cwd=f'/scratch/{run_id}')
-
-    # Execute Terraform console with the code from the event
-    result = run_subprocess(
-        [terraform_path, 'console'],
-        input=code,
-        cwd=f'/scratch/{run_id}',
+def _run(args, workdir, stdin=None):
+    """Run a binary with no shell, a curated env, rlimits, and a hard timeout."""
+    env = {
+        "HOME": workdir,
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "TF_IN_AUTOMATION": "1",
+        "TF_INPUT": "0",
+        "TF_CLI_ARGS": "-no-color",
+        "CHECKPOINT_DISABLE": "1",  # no version-check phone-home
+        "NO_COLOR": "1",
+    }
+    return subprocess.run(
+        args,
+        cwd=workdir,
+        input=stdin,
+        env=env,
+        shell=False,
         check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
-        env={"TF_CLI_ARGS": "-no-color"}
+        timeout=_TIMEOUT_SECONDS,
+        preexec_fn=_set_limits,
     )
 
-    shutil.rmtree(f'/scratch/{run_id}')
 
-    return str(result.stdout) + str(result.stderr)
+def evaluate(engine, version, code):
+    """Validate, then evaluate ``code`` offline via ``<engine> console``.
+
+    Returns the combined console stdout/stderr (string). Raises EvaluationError
+    for bad input.
+    """
+    _validate_code(code)
+    binary = resolve_binary(engine, version)
+    locals_block, expression = extract_locals_blocks(code)
+
+    run_id = uuid.uuid4().hex
+    workdir = os.path.join(SCRATCH_DIR, run_id)
+    os.makedirs(workdir)
+    try:
+        if locals_block.strip():
+            with open(os.path.join(workdir, "main.tf"), "w") as fh:
+                fh.write(locals_block)
+
+        # Offline init: no providers are allowed, so nothing is downloaded.
+        init = _run(
+            [binary, "init", "-backend=false", "-input=false", "-no-color"], workdir
+        )
+        if init.returncode != 0:
+            return (init.stdout or "") + (init.stderr or "")
+
+        console = _run([binary, "console"], workdir, stdin=expression)
+        return (console.stdout or "") + (console.stderr or "")
+    except subprocess.TimeoutExpired:
+        return "Error: evaluation timed out."
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)

@@ -1,247 +1,131 @@
-/* Base styles */
+:root {
+    --bg: #0e1016;
+    --panel: #161922;
+    --panel-2: #1d212c;
+    --border: #2a2f3a;
+    --text: #e7e9ee;
+    --muted: #8b93a3;
+    --accent: #7b42bc;        /* Terraform purple */
+    --accent-2: #9a63d6;
+    --tofu: #ffda18;          /* OpenTofu yellow */
+    --error: #ff6b6b;
+    --ok: #7ee2a8;
+    --ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
 body {
-    font-family: 'Poppins', sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-color: #f0f7ff;
-    color: #333;
-}
-
-/* Layout containers */
-.container {
-    max-width: 800px;
-    margin: 40px auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.header-container {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ui);
+    -webkit-font-smoothing: antialiased;
+}
+body.engine-tofu { --accent: #b8950f; --accent-2: var(--tofu); }
+
+a { color: inherit; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+    display: flex;
     align-items: center;
-    padding: 20px;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 1.1rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
 }
-
-.header-container img {
-    flex: 0 1 auto; /* Do not grow, but allow shrinking */
-    margin-right: 20px; /* Add some margin to avoid cramping */
+.brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.brand-mark {
+    font-family: var(--mono); font-weight: 500; color: var(--bg);
+    background: var(--accent-2); border-radius: 6px; padding: 0.15rem 0.4rem; font-size: 0.95rem;
 }
+.brand-name { font-weight: 700; letter-spacing: -0.01em; }
 
-.form-group {
-    margin-bottom: 1.5rem;
+.controls { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+
+.engine-toggle { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.engine-btn {
+    border: none; background: transparent; color: var(--muted);
+    font-family: var(--ui); font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    padding: 0.35rem 0.7rem; border-radius: 6px;
 }
+.engine-btn.is-active { background: var(--accent); color: #fff; }
 
-.header-spacer {
-    flex-grow: 1;
+select#versionSelect, .ghost-btn {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.4rem 0.6rem; font-family: var(--ui); font-size: 0.85rem; cursor: pointer;
 }
+select#versionSelect:focus, .ghost-btn:focus { outline: 2px solid var(--accent); }
 
-/* Header styles */
-#pageTitle {
-    margin: 0;
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: #0056b3;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-    text-align: center;
-    flex: 1 0 auto; /* Allow the title to take available space but not shrink */
-    padding: 0 10px; /* Add some padding to ensure it doesn’t touch the elements */
+.menu { position: relative; }
+.menu-list {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+    list-style: none; margin: 0; padding: 6px; min-width: 180px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 16px 40px -12px rgba(0,0,0,0.6);
 }
-
-.github-icon {
-    flex: 0 1 auto; /* Do not grow, but allow shrinking */
-    margin-left: 20px; /* Add some margin to avoid cramping */
-    font-size: 24px; /* Adjust the size of the GitHub icon */
-    text-decoration: none;
+.menu-list button {
+    width: 100%; text-align: left; background: transparent; border: none; color: var(--text);
+    font-family: var(--ui); font-size: 0.85rem; padding: 0.45rem 0.55rem; border-radius: 6px; cursor: pointer;
 }
+.menu-list button:hover { background: var(--accent); color: #fff; }
 
-/* Additional styles to ensure the GitHub icon looks good */
-.github-icon {
-    color: #333;
+.run-btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    font-family: var(--ui); font-weight: 700; font-size: 0.9rem; padding: 0.45rem 1rem; cursor: pointer;
+    transition: transform 0.1s, background 0.15s;
 }
+.run-btn:hover:not(:disabled) { background: var(--accent-2); }
+.run-btn:disabled { opacity: 0.6; cursor: progress; }
 
-.github-icon:hover {
-    color: #007bff; /* Change color on hover */
+.github-link { color: var(--muted); display: inline-flex; }
+.github-link:hover { color: var(--text); }
+
+/* ---------- Workspace ---------- */
+.workspace { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.editor-pane { border-right: 1px solid var(--border); }
+.pane-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); padding: 0.6rem 0.9rem; background: var(--panel); border-bottom: 1px solid var(--border);
 }
+#editor { flex: 1; min-height: 0; }
 
-/* Form elements */
-label, textarea, select, button {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #007bff;
-    font-weight: 600;
+.copy-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-size: 0.7rem; border-radius: 5px; padding: 0.15rem 0.5rem; cursor: pointer; letter-spacing: 0;
+    text-transform: none;
 }
+.copy-btn:hover { color: var(--text); border-color: var(--muted); }
 
-textarea, select {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
+.output {
+    flex: 1; margin: 0; padding: 1rem 1.1rem; overflow: auto; min-height: 0;
+    font-family: var(--mono); font-size: 0.85rem; line-height: 1.55; color: var(--text);
+    white-space: pre-wrap; word-break: break-word; background: #0c0e13;
 }
+.output.is-error { color: var(--error); }
+.output .muted { color: var(--muted); }
 
-textarea:focus, select:focus, button:hover {
-    border-color: #007bff;
-    outline: none;
-}
-
-#editor {
-    height: 450px;
-    width: 100%;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-}
-
-button {
-    background-image: linear-gradient(45deg, #007bff, #0056b3);
-    color: #fff;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 600;
-    text-transform: uppercase;
-    transition: transform 0.1s;
-}
-
-/* Output styles */
-#outputSection {
-    margin-top: 20px;
-}
-
-#output {
-    background-color: #f8fafc;
-    padding: 15px;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-    word-wrap: break-word;
-    overflow-y: auto;
-    min-height: 100px;
-    max-height: 400px;
-    white-space: pre-wrap;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-/* Tooltip styles */
-.tooltip-icon {
-    position: relative;
-    cursor: pointer;
-}
-
-.tooltip-text {
-    visibility: hidden;
-    width: 120px;
-    background-color: black;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 0;
-    position: absolute;
-    z-index: 1;
-    bottom: 100%;
-    left: 50%;
-    margin-left: -60px;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.tooltip-icon:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
-
-.tooltip-icon:hover {
-    color: #007bff; /* Change color on hover */
-    transform: scale(1.1); /* Slightly increase size on hover */
-}
-
-/* Third-party tooltip styles */
-.tippy-box[data-theme~='light'] {
-    background-color: #f8f9fa;
-    color: black;
-    border-radius: 8px;
-    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
-}
-
-.tippy-arrow {
-    color: #f8f9fa;
-}
-
+/* ---------- Footer ---------- */
 .site-footer {
-    background-color: #333; /* Dark background for the footer */
-    color: white; /* Light text color for contrast */
-    text-align: center; /* Center-align the text */
-    padding: 20px 0; /* Padding around the content */
-    margin-top: 40px; /* Space between the content and the footer */
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 0.6rem 1.1rem; font-size: 0.78rem; color: var(--muted);
+    background: var(--panel); border-top: 1px solid var(--border);
 }
+.site-footer a { color: var(--accent-2); text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }
+.site-footer code { font-family: var(--mono); color: var(--text); }
 
-.footer-content {
-    max-width: 800px;
-    margin: auto;
-}
-
-.footer-content p {
-    margin: 10px 0; /* Vertical spacing */
-}
-
-.footer-content a {
-    color: #007bff; /* Brand color for links */
-    text-decoration: none; /* Removes underline from links */
-}
-
-.footer-content a:hover {
-    text-decoration: underline; /* Adds underline on hover for links */
-}
-
-/* Responsive styles */
-@media (max-width: 768px) {
-    .container, .form-group, #editor {
-        padding: 10px;
-        margin: 10px auto;
-    }
-
-    #editor {
-        height: 200px;
-        width: 85%;
-    }
-
-    .header-container, .form-group, button, select, textarea {
-        flex-direction: column;
-        align-items: center;
-        width: auto;
-        max-width: 100%;
-    }
-
-    .github-icon {
-        font-size: 20px;
-        padding: 10px;
-    }
-
-    #pageTitle {
-        font-size: 2rem;
-    }
-}
-
-@media screen and (max-width: 600px) {
-    .tooltip-text {
-        width: 90%;
-        margin-left: -45%;
-    }
-}
-
-/* Add responsive adjustments as needed */
-@media (max-width: 768px) {
-    .github-icon, .tooltip-icon {
-        font-size: 20px; /* Adjust size for smaller screens */
-        padding: 10px; /* Add padding for easier touch */
-    }
-
-    /* Consider reducing the hover effect on mobile devices, as hover can behave unpredictably */
-    .github-icon:hover, .tooltip-icon:hover {
-        transform: none; /* Disable scale transformation on touch devices */
-    }
+@media (max-width: 820px) {
+    .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+    .editor-pane { border-right: none; border-bottom: 1px solid var(--border); }
+    .topbar { gap: 0.5rem; }
+    .brand-name { display: none; }
 }

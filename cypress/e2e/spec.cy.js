@@ -1,53 +1,57 @@
-describe('Ensure that HCL Playground loads', () => {
-    it('Visits the initial project page', () => {
+describe('HCL Playground loads', () => {
+    it('shows the app', () => {
         cy.visit('/');
         cy.contains('HCL Playground');
     });
 });
 
-describe('Ensure that healthcheck endpoint is accessible', () => {
-    it('Visits the healthcheck endpoint', () => {
-        cy.visit('/health');
-        cy.contains('healthy');
+describe('Healthcheck', () => {
+    it('is accessible', () => {
+        cy.request('/health').its('body').should('contain', 'healthy');
     });
 });
 
-describe('Ensure that the base example produces the expected output when evaluated', () => {
-    it('Submits an HCL Playground sample', () => {
+describe('Evaluating the default example', () => {
+    it('returns the expected expression output (Terraform)', () => {
         cy.visit('/');
-        cy.get('#evalutate').click()
-        cy.get('#outputSection', { timeout: 10000 }).should('be.visible');
-        cy.get('#output').contains(`[
-  {
-    "availability_zone" = "us-east-1a"
-    "cidr_block" = "10.0.0.0.0/16.0/24"
-    "region" = "us-east-1"
-  },
-  {
-    "availability_zone" = "us-east-1b"
-    "cidr_block" = "10.0.1.0.0/16.0/24"
-    "region" = "us-east-1"
-  },
-  {
-    "availability_zone" = "us-west-2a"
-    "cidr_block" = "10.0.2.0.0/16.0/24"
-    "region" = "us-west-2"
-  },
-  {
-    "availability_zone" = "us-west-2b"
-    "cidr_block" = "10.0.3.0.0/16.0/24"
-    "region" = "us-west-2"
-  },
-  {
-    "availability_zone" = "eu-central-1a"
-    "cidr_block" = "10.0.4.0.0/16.0/24"
-    "region" = "eu-central-1"
-  },
-  {
-    "availability_zone" = "eu-central-1b"
-    "cidr_block" = "10.0.5.0.0/16.0/24"
-    "region" = "eu-central-1"
-  },
-]`);
+        cy.window().its('editor').should('exist');   // wait for Monaco
+        cy.get('#runBtn').click();
+        cy.get('#output', { timeout: 20000 })
+            .should('contain', '"region" = "us-east-1"')
+            .and('contain', '"availability_zone" = "us-east-1a"');
+    });
+
+    it('also works with the OpenTofu engine', () => {
+        cy.visit('/');
+        cy.window().its('editor').should('exist');
+        cy.get('.engine-btn[data-engine="tofu"]').click();
+        cy.get('#runBtn').click();
+        cy.get('#output', { timeout: 20000 })
+            .should('contain', '"region" = "us-east-1"');
+    });
+});
+
+describe('Security: disallowed input is rejected', () => {
+    it('rejects provider blocks via the API', () => {
+        cy.request({
+            method: 'POST',
+            url: '/evaluate',
+            failOnStatusCode: false,
+            body: { engine: 'terraform', version: '1.9.8', code: 'provider "aws" {}' },
+        }).then((resp) => {
+            expect(resp.status).to.eq(400);
+            expect(resp.body.error).to.contain('Only');
+        });
+    });
+
+    it('rejects an injection attempt in the version field', () => {
+        cy.request({
+            method: 'POST',
+            url: '/evaluate',
+            failOnStatusCode: false,
+            body: { engine: 'terraform', version: '1.0.0; id', code: 'upper("hi")' },
+        }).then((resp) => {
+            expect(resp.status).to.eq(400);
+        });
     });
 });

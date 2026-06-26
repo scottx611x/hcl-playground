@@ -22,8 +22,27 @@ spec:
         volumeMounts:
           - name: hcl-playground-volume
             mountPath: /scratch
+          - name: tmp
+            mountPath: /tmp
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            # Bounds engine memory (we deliberately don't set RLIMIT_AS on the
+            # Go binaries) and CPU per pod.
+            cpu: "1"
+            memory: "1Gi"
         securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
           runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
       initContainers:
         - name: fs-owner-change
           image: busybox
@@ -37,3 +56,5 @@ spec:
         - name: hcl-playground-volume
           persistentVolumeClaim:
               claimName: efs-pvc
+        - name: tmp
+          emptyDir: {}

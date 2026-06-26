@@ -1,59 +1,72 @@
-from functools import cache
+from flask import Flask, abort, jsonify, render_template, request
 
-from flask import Flask, render_template, request
-from bs4 import BeautifulSoup
-import requests
-
-from backend.terraform_utils import handler
+from backend.terraform_utils import (
+    ENGINES,
+    MAX_CODE_BYTES,
+    EvaluationError,
+    evaluate,
+    installed_versions,
+)
 
 app = Flask(__name__)
 
+# Cap request bodies (Flask returns 413 past this). Headroom over MAX_CODE_BYTES
+# for the small JSON envelope.
+app.config["MAX_CONTENT_LENGTH"] = MAX_CODE_BYTES + 8 * 1024
 
-@cache
-def fetch_terraform_versions():
-    url = "https://releases.hashicorp.com/terraform/"
-    versions = []
+DEFAULT_ENGINE = "terraform"
+
+
+def _versions_by_engine():
+    return {engine: installed_versions(engine) for engine in ENGINES}
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template(
+        "index.html",
+        versions=_versions_by_engine(),
+        default_engine=DEFAULT_ENGINE,
+    )
+
+
+@app.route("/evaluate", methods=["POST"])
+def evaluate_route():
+    # JSON-only: a cross-site HTML form can't set application/json without a CORS
+    # preflight, so this also resists CSRF (there's no session/cookie anyway).
+    if not request.is_json:
+        abort(415)
+    data = request.get_json(silent=True) or {}
+    engine = (data.get("engine") or DEFAULT_ENGINE).strip()
+    version = (data.get("version") or "").strip()
+    code = data.get("code") or ""
 
     try:
-        # Send a GET request to the URL
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an error for bad responses
-
-        # Parse the HTML content of the page
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Find all version links. Versions are typically in <a> tags within the main page content.
-        # This might need adjustments if the page structure changes.
-        for link in soup.find_all('a'):
-            href = link.get('href')
-            if href and 'terraform/' in href:
-                version = href.rstrip('/').split("/")[-1]
-                if version not in versions:  # Avoid duplicates
-                    versions.append(version)
-
-        return versions
-    except requests.RequestException as e:
-        print(f"An error occurred: {e}")
-        return versions
-
-# Route for serving the index page and handling form submission
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    output = ""
-    if request.method == 'POST':
-        # Extract code from the form submission
-        code = request.form.get('codeInput').strip()
-        version = request.form.get('terraformVersion')
-
-        output = handler(
-            {"pathParameters": {"terraform_version": version}, "body": {"code": code}},
-        )
-
-        return render_template('index.html', code=code, output=output, selected_terraform_version=version, terraform_versions=fetch_terraform_versions())
-
-    return render_template('index.html', output=output, terraform_versions=fetch_terraform_versions())
+        output = evaluate(engine, version, code)
+    except EvaluationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"output": output})
 
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health():
     return "healthy", 200
+
+
+@app.after_request
+def security_headers(resp):
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        # Monaco (from cdnjs) needs eval + blob workers.
+        "script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com; "
+        "worker-src 'self' blob:; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+        "connect-src 'self' https://cdnjs.cloudflare.com; "
+        "img-src 'self' data:; "
+        "frame-ancestors 'none'; base-uri 'self'"
+    )
+    return resp
