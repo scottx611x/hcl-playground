@@ -55,6 +55,71 @@
       name: "cidr math",
       code: 'cidrsubnets("10.0.0.0/16", 4, 4, 8, 8)',
     },
+    {
+      name: "for + filter (map)",
+      code: [
+        "locals {",
+        "  instances = {",
+        '    web1 = { env = "prod", size = "large" }',
+        '    web2 = { env = "dev",  size = "small" }',
+        '    db1  = { env = "prod", size = "large" }',
+        "  }",
+        "}",
+        "",
+        "// keep only prod, project to their size",
+        "{ for name, i in local.instances : name => i.size if i.env == \"prod\" }",
+      ].join("\n"),
+    },
+    {
+      name: "group by",
+      code: [
+        "locals {",
+        "  servers = [",
+        '    { name = "a", role = "web" },',
+        '    { name = "b", role = "db"  },',
+        '    { name = "c", role = "web" },',
+        "  ]",
+        "}",
+        "",
+        "// classic grouping: role => [names...]",
+        "{ for s in local.servers : s.role => s.name... }",
+      ].join("\n"),
+    },
+    {
+      name: "JSON in/out",
+      code: [
+        'jsondecode("{\\"tags\\":[\\"a\\",\\"b\\"],\\"count\\":3}")["tags"]',
+      ].join("\n"),
+    },
+    {
+      name: "regex parsing",
+      code: [
+        "locals {",
+        '  arn = "arn:aws:s3:::my-bucket/path/key"',
+        "}",
+        "",
+        'regex("arn:aws:(?P<service>[^:]+):", local.arn)',
+      ].join("\n"),
+    },
+    {
+      name: "try / can (safe lookups)",
+      code: [
+        "locals {",
+        '  cfg = { name = "birds" }',
+        "}",
+        "",
+        '// fall back when a key is missing',
+        'try(local.cfg.region, "us-east-1")',
+      ].join("\n"),
+    },
+    {
+      name: "flatten + distinct + sort",
+      code: 'sort(distinct(flatten([["b", "a"], ["a", "c"]])))',
+    },
+    {
+      name: "dates & durations",
+      code: 'formatdate("EEEE, DD MMM YYYY", timeadd(timestamp(), "24h"))',
+    },
   ];
 
   function el(id) {
@@ -190,6 +255,16 @@
       .catch(function () { hclFunctions = []; });
   }
 
+  function docUrl(name) {
+    return engine === "tofu"
+      ? "https://opentofu.org/docs/language/functions/" + name + "/"
+      : "https://developer.hashicorp.com/terraform/language/functions/" + name;
+  }
+  function docLink(name) {
+    var label = engine === "tofu" ? "OpenTofu" : "Terraform";
+    return "[📖 " + label + " docs ↗](" + docUrl(name) + ")";
+  }
+
   function registerProviders(monaco) {
     monaco.languages.registerCompletionItemProvider("hcl", {
       provideCompletionItems: function (model, position) {
@@ -204,7 +279,7 @@
               label: fn.name,
               kind: monaco.languages.CompletionItemKind.Function,
               detail: fn.sig,
-              documentation: fn.doc,
+              documentation: { value: (fn.doc ? fn.doc + "\n\n" : "") + docLink(fn.name) },
               insertText: fn.name + "($0)",
               insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
               range: range,
@@ -219,7 +294,13 @@
         if (!word) return null;
         var fn = hclFunctions.filter(function (f) { return f.name === word.word; })[0];
         if (!fn) return null;
-        return { contents: [{ value: "**" + fn.sig + "**" }, { value: fn.doc }] };
+        return {
+          contents: [
+            { value: "**" + fn.sig + "**" },
+            { value: fn.doc },
+            { value: docLink(fn.name) },
+          ],
+        };
       },
     });
   }
