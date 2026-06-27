@@ -16,6 +16,7 @@ import re
 import resource
 import shutil
 import subprocess
+import threading
 import uuid
 
 SCRATCH_DIR = os.environ.get("HCL_SCRATCH_DIR", "/scratch")
@@ -82,6 +83,57 @@ def extract_locals_blocks(text):
         line for line in rest_of_text.splitlines() if not line.startswith("//")
     )
     return "\n".join(locals_blocks), rest_of_text
+
+
+# Per-engine installers (tfenv/tofuenv) for on-demand version pulls.
+_INSTALLERS = {
+    "terraform": {"cmd": "/opt/tfenv/bin/tfenv", "root_env": "TFENV_ROOT", "root": "/opt/tfenv"},
+    "tofu": {"cmd": "/opt/tofuenv/bin/tofuenv", "root_env": "TOFUENV_ROOT", "root": "/opt/tofuenv"},
+}
+_INSTALL_LOCK = threading.Lock()
+_INSTALL_TIMEOUT = 180
+
+
+def ensure_installed(engine, version):
+    """Make sure (engine, version) is installed, pulling it on demand if not.
+
+    Only validated semver versions are accepted, and the actual download +
+    checksum verification is done by tfenv/tofuenv from their official sources.
+    Returns the binary path. Raises EvaluationError on bad input / install failure.
+    """
+    if engine not in ENGINES:
+        raise EvaluationError("Unknown engine (expected 'terraform' or 'tofu').")
+    if not _VERSION_RE.match(version or ""):
+        raise EvaluationError("Invalid version (expected e.g. 1.10.5).")
+    cfg = ENGINES[engine]
+    path = os.path.join(cfg["root"], version, cfg["bin"])
+    if os.path.isfile(path):
+        return path
+
+    installer = _INSTALLERS[engine]
+    with _INSTALL_LOCK:
+        if os.path.isfile(path):  # installed while we waited for the lock
+            return path
+        env = {
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "HOME": "/tmp",
+            installer["root_env"]: installer["root"],
+        }
+        try:
+            subprocess.run(
+                [installer["cmd"], "install", version],
+                env=env, shell=False, check=True,
+                capture_output=True, text=True, timeout=_INSTALL_TIMEOUT,
+            )
+        except subprocess.CalledProcessError:
+            raise EvaluationError(
+                "Couldn't install {} {} — is it a real release?".format(engine, version)
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            raise EvaluationError("Timed out installing {} {}.".format(engine, version))
+    if not os.path.isfile(path):
+        raise EvaluationError("Install of {} {} did not produce a binary.".format(engine, version))
+    return path
 
 
 def resolve_binary(engine, version):
@@ -190,6 +242,7 @@ def evaluate(engine, version, code):
     for bad input.
     """
     _validate_code(code)
+    ensure_installed(engine, version)
     binary = resolve_binary(engine, version)
     locals_block, expression = extract_locals_blocks(code)
 
@@ -226,10 +279,11 @@ def list_functions(engine, version):
     that binary (functions differ across versions and between TF/OpenTofu).
     Cached — the catalog is static per binary. Returns [{name, sig, doc}].
     """
-    binary = resolve_binary(engine, version)  # validates engine + version
     key = (engine, version)
     if key in _FUNCTIONS_CACHE:
         return _FUNCTIONS_CACHE[key]
+    ensure_installed(engine, version)
+    binary = resolve_binary(engine, version)  # validates engine + version
 
     result = _run([binary, "metadata", "functions", "-json"], SCRATCH_DIR, tf_cli_args=False)
     functions = []

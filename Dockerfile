@@ -30,10 +30,13 @@ RUN if [ "$INSTALL_DEV_DEPS" = "false" ] ; then rm -r tests; fi
 
 COPY app/ /app
 
-# Non-root user; own /scratch so the app can write even without a volume mount.
+# Non-root user; own /scratch (work area) and the engine roots so versions can be
+# installed on demand at runtime (in the default run; the hardened read-only run
+# is frozen to the pre-baked set).
 RUN adduser --disabled-password --gecos '' app-user \
     && mkdir -p /scratch \
-    && chown app-user:app-user /scratch
+    && chown app-user:app-user /scratch \
+    && chown -R app-user:app-user /opt/tfenv /opt/tofuenv
 USER app-user
 
 EXPOSE 8080

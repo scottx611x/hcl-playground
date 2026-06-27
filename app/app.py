@@ -4,6 +4,7 @@ from backend.terraform_utils import (
     ENGINES,
     MAX_CODE_BYTES,
     EvaluationError,
+    ensure_installed,
     evaluate,
     installed_versions,
     list_functions,
@@ -47,6 +48,20 @@ def evaluate_route():
     except EvaluationError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"output": output})
+
+
+@app.route("/install", methods=["POST"])
+def install_route():
+    if not request.is_json:
+        abort(415)
+    data = request.get_json(silent=True) or {}
+    engine = (data.get("engine") or DEFAULT_ENGINE).strip()
+    version = (data.get("version") or "").strip()
+    try:
+        ensure_installed(engine, version)
+    except EvaluationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, "engine": engine, "version": version})
 
 
 @app.route("/functions", methods=["GET"])
