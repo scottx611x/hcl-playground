@@ -353,14 +353,22 @@ def evaluate(engine, version, code):
     ensure_installed(engine, version)
     binary = resolve_binary(engine, version)
     locals_block, expression = extract_locals_blocks(code)
+    expression = expression.strip()
 
     run_id = uuid.uuid4().hex
     workdir = os.path.join(SCRATCH_DIR, run_id)
     os.makedirs(workdir)
     try:
-        if locals_block.strip():
+        # Write the user's locals plus the trailing expression wrapped as a local
+        # value. `console` then evaluates a single-line reference, which sidesteps
+        # its line-by-line stdin parsing — a multi-line expression piped directly
+        # otherwise fails with "Missing expression".
+        main_tf = locals_block or ""
+        if expression:
+            main_tf += "\n\nlocals {\n  _hclpg_result = (\n" + expression + "\n  )\n}\n"
+        if main_tf.strip():
             with open(os.path.join(workdir, "main.tf"), "w") as fh:
-                fh.write(locals_block)
+                fh.write(main_tf)
 
         # Offline init: no providers are allowed, so nothing is downloaded.
         init = _run(
@@ -369,7 +377,10 @@ def evaluate(engine, version, code):
         if init.returncode != 0:
             return (init.stdout or "") + (init.stderr or "")
 
-        console = _run([binary, "console"], workdir, stdin=expression)
+        if not expression:
+            return "Add an expression (outside any locals block) to evaluate."
+
+        console = _run([binary, "console"], workdir, stdin="local._hclpg_result\n")
         return (console.stdout or "") + (console.stderr or "")
     except subprocess.TimeoutExpired:
         return "Error: evaluation timed out."

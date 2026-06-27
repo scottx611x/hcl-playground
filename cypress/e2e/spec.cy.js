@@ -16,9 +16,10 @@ describe('Evaluating the default example', () => {
         cy.visit('/');
         cy.window().its('editor').should('exist');   // wait for Monaco
         cy.get('#runBtn').click();
-        cy.get('#output', { timeout: 20000 })
-            .should('contain', '"region" = "us-east-1"')
-            .and('contain', '"availability_zone" = "us-east-1a"');
+        cy.get('#runBtn', { timeout: 25000 }).should('not.be.disabled');
+        cy.get('#output')
+            .should('contain', '"az" = "us-east-1a"')
+            .and('contain', '"cidr"');
     });
 
     it('also works with the OpenTofu engine', () => {
@@ -26,8 +27,25 @@ describe('Evaluating the default example', () => {
         cy.window().its('editor').should('exist');
         cy.get('.engine-btn[data-engine="tofu"]').click();
         cy.get('#runBtn').click();
-        cy.get('#output', { timeout: 20000 })
-            .should('contain', '"region" = "us-east-1"');
+        cy.get('#runBtn', { timeout: 25000 }).should('not.be.disabled');
+        cy.get('#output').should('contain', '"az" = "us-east-1a"');
+    });
+});
+
+describe('Every example evaluates without an error', () => {
+    it('runs each example end to end', () => {
+        cy.visit('/');
+        cy.window().its('editor').should('exist');
+        cy.get('#examplesBtn').click();
+        cy.get('#examplesMenu button').its('length').then((n) => {
+            for (let i = 0; i < n; i++) {
+                cy.get('#examplesBtn').click();
+                cy.get('#examplesMenu button').eq(i).click();
+                cy.get('#runBtn').click();
+                cy.get('#runBtn', { timeout: 25000 }).should('not.be.disabled');
+                cy.get('#output').should('not.contain', 'Error');
+            }
+        });
     });
 });
 
@@ -37,7 +55,7 @@ describe('Security: disallowed input is rejected', () => {
             method: 'POST',
             url: '/evaluate',
             failOnStatusCode: false,
-            body: { engine: 'terraform', version: '1.9.8', code: 'provider "aws" {}' },
+            body: { engine: 'terraform', version: '1.15.7', code: 'provider "aws" {}' },
         }).then((resp) => {
             expect(resp.status).to.eq(400);
             expect(resp.body.error).to.contain('Only');
