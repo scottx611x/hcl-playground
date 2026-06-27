@@ -239,6 +239,8 @@ def list_functions(engine, version):
         except ValueError:
             signatures = {}
         for name, sig in sorted(signatures.items()):
+            if "::" in name:
+                continue  # skip namespaced duplicates like core::abs / provider::
             functions.append(
                 {"name": name, "sig": _format_signature(name, sig), "doc": _short_doc(sig)}
             )
