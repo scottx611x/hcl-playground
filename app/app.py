@@ -6,6 +6,7 @@ from backend.terraform_utils import (
     EvaluationError,
     evaluate,
     installed_versions,
+    list_functions,
 )
 
 app = Flask(__name__)
@@ -46,6 +47,17 @@ def evaluate_route():
     except EvaluationError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"output": output})
+
+
+@app.route("/functions", methods=["GET"])
+def functions_route():
+    engine = (request.args.get("engine") or DEFAULT_ENGINE).strip()
+    version = (request.args.get("version") or "").strip()
+    try:
+        functions = list_functions(engine, version)
+    except EvaluationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"functions": functions})
 
 
 @app.route("/health", methods=["GET"])

@@ -6,12 +6,12 @@ RUN apt-get update \
 
 # Pre-bake pinned Terraform versions via tfenv (no per-request installs). The set
 # of installed versions IS the runtime allowlist (see backend.terraform_utils).
-ARG TF_VERSIONS="1.9.8 1.8.5 1.7.5"
+ARG TF_VERSIONS="1.10.5 1.9.8 1.8.5 1.7.5 1.6.6 1.5.7"
 RUN git clone --depth=1 https://github.com/tfutils/tfenv.git /opt/tfenv \
     && for v in $TF_VERSIONS; do TFENV_ROOT=/opt/tfenv /opt/tfenv/bin/tfenv install "$v"; done
 
 # Pre-bake pinned OpenTofu versions via tofuenv.
-ARG TOFU_VERSIONS="1.8.5 1.7.3 1.6.3"
+ARG TOFU_VERSIONS="1.10.10 1.9.4 1.8.11 1.7.10 1.6.3"
 RUN git clone --depth=1 https://github.com/tofuutils/tofuenv.git /opt/tofuenv \
     && for v in $TOFU_VERSIONS; do TOFUENV_ROOT=/opt/tofuenv /opt/tofuenv/bin/tofuenv install "$v"; done
 

@@ -10,6 +10,7 @@ Hardened model (see SECURITY notes inline):
 - Each run is wrapped in a wall-clock timeout plus CPU/file/process rlimits.
 """
 
+import json
 import os
 import re
 import resource
@@ -154,17 +155,20 @@ def _set_limits():
     resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
 
 
-def _run(args, workdir, stdin=None):
+def _run(args, workdir, stdin=None, tf_cli_args=True):
     """Run a binary with no shell, a curated env, rlimits, and a hard timeout."""
     env = {
         "HOME": workdir,
         "PATH": "/usr/local/bin:/usr/bin:/bin",
         "TF_IN_AUTOMATION": "1",
         "TF_INPUT": "0",
-        "TF_CLI_ARGS": "-no-color",
         "CHECKPOINT_DISABLE": "1",  # no version-check phone-home
         "NO_COLOR": "1",
     }
+    if tf_cli_args:
+        # Appended to every command — fine for init/console, but `metadata
+        # functions` rejects unknown flags, so callers can opt out.
+        env["TF_CLI_ARGS"] = "-no-color"
     return subprocess.run(
         args,
         cwd=workdir,
@@ -210,3 +214,52 @@ def evaluate(engine, version, code):
         return "Error: evaluation timed out."
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+_FUNCTIONS_CACHE = {}
+
+
+def list_functions(engine, version):
+    """The engine's own function catalog for (engine, version), for autocomplete.
+
+    Sourced from `<engine> metadata functions -json` so it's exactly right for
+    that binary (functions differ across versions and between TF/OpenTofu).
+    Cached — the catalog is static per binary. Returns [{name, sig, doc}].
+    """
+    binary = resolve_binary(engine, version)  # validates engine + version
+    key = (engine, version)
+    if key in _FUNCTIONS_CACHE:
+        return _FUNCTIONS_CACHE[key]
+
+    result = _run([binary, "metadata", "functions", "-json"], SCRATCH_DIR, tf_cli_args=False)
+    functions = []
+    if result.returncode == 0:
+        try:
+            signatures = json.loads(result.stdout).get("function_signatures") or {}
+        except ValueError:
+            signatures = {}
+        for name, sig in sorted(signatures.items()):
+            functions.append(
+                {"name": name, "sig": _format_signature(name, sig), "doc": _short_doc(sig)}
+            )
+    _FUNCTIONS_CACHE[key] = functions
+    return functions
+
+
+def _format_signature(name, sig):
+    params = [p.get("name", "") for p in (sig.get("parameters") or [])]
+    variadic = sig.get("variadic_parameter")
+    if variadic:
+        params.append((variadic.get("name", "") or "arg") + "...")
+    return "{}({})".format(name, ", ".join(params))
+
+
+def _short_doc(sig):
+    desc = (sig.get("description") or "").replace("`", "").strip()
+    # descriptions are markdown; first sentence/line is enough for a tooltip.
+    for stop in (". ", "\n"):
+        idx = desc.find(stop)
+        if idx != -1:
+            desc = desc[: idx + (1 if stop == ". " else 0)]
+            break
+    return desc[:160]

@@ -4,6 +4,10 @@
   var VERSIONS = JSON.parse(document.getElementById("versions-data").textContent || "{}");
   var engine = document.body.dataset.defaultEngine || "terraform";
 
+  // Live function catalog for the selected engine+version (fetched from /functions).
+  var hclFunctions = [];
+  var functionsCache = {};
+
   var EXAMPLES = [
     {
       name: "setproduct + for",
@@ -175,8 +179,18 @@
     });
   }
 
+  function refreshFunctions() {
+    var version = el("versionSelect").value;
+    if (!version) { hclFunctions = []; return; }
+    var key = engine + "|" + version;
+    if (functionsCache[key]) { hclFunctions = functionsCache[key]; return; }
+    fetch("/functions?engine=" + encodeURIComponent(engine) + "&version=" + encodeURIComponent(version))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { hclFunctions = d.functions || []; functionsCache[key] = hclFunctions; })
+      .catch(function () { hclFunctions = []; });
+  }
+
   function registerProviders(monaco) {
-    var fns = window.HCL_FUNCTIONS || [];
     monaco.languages.registerCompletionItemProvider("hcl", {
       provideCompletionItems: function (model, position) {
         var word = model.getWordUntilPosition(position);
@@ -185,7 +199,7 @@
           startColumn: word.startColumn, endColumn: word.endColumn,
         };
         return {
-          suggestions: fns.map(function (fn) {
+          suggestions: hclFunctions.map(function (fn) {
             return {
               label: fn.name,
               kind: monaco.languages.CompletionItemKind.Function,
@@ -203,7 +217,7 @@
       provideHover: function (model, position) {
         var word = model.getWordAtPosition(position);
         if (!word) return null;
-        var fn = fns.filter(function (f) { return f.name === word.word; })[0];
+        var fn = hclFunctions.filter(function (f) { return f.name === word.word; })[0];
         if (!fn) return null;
         return { contents: [{ value: "**" + fn.sig + "**" }, { value: fn.doc }] };
       },
@@ -244,11 +258,12 @@
     var initial = loadInitialState();
     setEngine(initial.engine);
     selectVersion(initial.version);
+    refreshFunctions();
     buildExamplesMenu();
 
     el("engineToggle").addEventListener("click", function (e) {
       var btn = e.target.closest(".engine-btn");
-      if (btn) { setEngine(btn.dataset.engine); persist(); }
+      if (btn) { setEngine(btn.dataset.engine); persist(); refreshFunctions(); }
     });
     el("runBtn").addEventListener("click", run);
     el("examplesBtn").addEventListener("click", function () {
@@ -265,7 +280,7 @@
     el("copyBtn").addEventListener("click", function () {
       navigator.clipboard && navigator.clipboard.writeText(el("output").textContent || "");
     });
-    el("versionSelect").addEventListener("change", persist);
+    el("versionSelect").addEventListener("change", function () { persist(); refreshFunctions(); });
     el("shareBtn").addEventListener("click", function () {
       var url = location.origin + location.pathname + "#s=" + encodeState(currentState());
       history.replaceState(null, "", url);
