@@ -28,31 +28,51 @@
       ].join("\n"),
     },
     {
-      name: "🃏 deck of cards",
+      name: "🦉 sightings by spot",
       code: [
-        "// 52 cards from a Cartesian product",
-        '[for c in setproduct(["♠", "♥", "♦", "♣"], ["A","K","Q","J","10","9","8","7","6","5","4","3","2"]) :',
-        '  "${c[1]}${c[0]}"]',
+        "locals {",
+        "  sightings = [",
+        '    { bird = "Barred Owl",        spot = "Rea St." },',
+        '    { bird = "Great Egret",       spot = "Stevens Pond" },',
+        '    { bird = "Northern Cardinal", spot = "Rea St." },',
+        '    { bird = "Osprey",            spot = "Stevens Pond" },',
+        '    { bird = "Wood Duck",         spot = "Lake Cochichewick" },',
+        "  ]",
+        "}",
+        "",
+        "// group sightings by location around North Andover, MA",
+        "{ for s in local.sightings : s.spot => s.bird... }",
       ].join("\n"),
     },
     {
-      name: "📊 ASCII bar chart",
+      name: "naming convention",
       code: [
         "locals {",
-        "  metrics = { cpu = 7, mem = 4, disk = 9, net = 2 }",
+        '  env      = "prod"',
+        '  region   = "us-east-1"',
+        '  services = ["owl", "egret", "osprey"]',
         "}",
         "",
-        "// draw a bar per metric",
-        '{ for k, v in local.metrics : k => join("", [for i in range(v) : "█"]) }',
+        "// prod-owl-useast1, ...",
+        '{ for s in local.services : s => format("%s-%s-%s", local.env, s, replace(local.region, "-", "")) }',
+      ].join("\n"),
+    },
+    {
+      name: "per-env config matrix",
+      code: [
+        "locals {",
+        '  envs      = ["dev", "staging", "prod"]',
+        '  base      = { instance_type = "t3.small", min = 1 }',
+        '  overrides = { prod = { instance_type = "m6i.large", min = 3 } }',
+        "}",
+        "",
+        "// merge base with any per-env overrides",
+        "{ for e in local.envs : e => merge(local.base, try(local.overrides[e], {})) }",
       ].join("\n"),
     },
     {
       name: "CSV → objects",
       code: 'csvdecode("name,role,team\\nscott,engineer,platform\\nada,scientist,research")',
-    },
-    {
-      name: "multiplication table",
-      code: "{ for x in range(1, 6) : x => { for y in range(1, 6) : y => x * y } }",
     },
     {
       name: "index a list by key",
@@ -66,21 +86,6 @@
         "",
         "// list -> map keyed by id",
         "{ for u in local.users : u.id => u }",
-      ].join("\n"),
-    },
-    {
-      name: "group by",
-      code: [
-        "locals {",
-        "  servers = [",
-        '    { name = "a", role = "web" },',
-        '    { name = "b", role = "db"  },',
-        '    { name = "c", role = "web" },',
-        "  ]",
-        "}",
-        "",
-        "// role => [names...]",
-        "{ for s in local.servers : s.role => s.name... }",
       ].join("\n"),
     },
     {
@@ -126,25 +131,6 @@
         "",
         '// fall back when a key is missing',
         'try(local.cfg.region, "us-east-1")',
-      ].join("\n"),
-    },
-    {
-      name: "🌱 OpenTofu only: cidrcontains",
-      engine: "tofu",
-      code: [
-        "// cidrcontains / urldecode / base64gunzip are OpenTofu-only.",
-        "// Switch the engine to Terraform and this errors — the function doesn't exist.",
-        'cidrcontains("10.0.0.0/16", "10.0.42.5")',
-      ].join("\n"),
-    },
-    {
-      name: "🏗️ Terraform only: ephemeralasnull",
-      engine: "terraform",
-      version: "1.10.5",
-      code: [
-        "// ephemeralasnull is Terraform-only (1.10+).",
-        "// Switch to OpenTofu and it errors — it doesn't have it.",
-        'ephemeralasnull("this would be a secret")',
       ].join("\n"),
     },
     {
@@ -217,10 +203,22 @@
     populateVersions();
   }
 
+  function engineLabel() {
+    return engine === "tofu" ? "OpenTofu" : "Terraform";
+  }
+
   function setOutput(text, isError) {
     var out = el("output");
     out.textContent = text;
     out.classList.toggle("is-error", !!isError);
+  }
+
+  function setMeta(text, isError) {
+    var m = el("outputMeta");
+    if (!m) return;
+    m.textContent = text || "";
+    m.classList.toggle("is-error", !!isError);
+    m.hidden = !text;
   }
 
   function run() {
@@ -233,6 +231,9 @@
     var btn = el("runBtn");
     btn.disabled = true;
     btn.textContent = "Running…";
+    var label = engineLabel();
+    var started = Date.now();
+    setMeta("executing on " + label + " " + version + "…");
     setOutput("Evaluating…");
 
     fetch("/evaluate", {
@@ -246,14 +247,19 @@
         });
       })
       .then(function (res) {
+        var secs = ((Date.now() - started) / 1000).toFixed(1) + "s";
         if (!res.ok || res.data.error) {
           setOutput(res.data.error || "Something went wrong.", true);
+          setMeta(label + " " + version + " · " + secs + " · error", true);
         } else {
           setOutput(res.data.output || "(no output)");
+          setMeta(label + " " + version + " · " + secs);
         }
+        persist();
       })
       .catch(function () {
         setOutput("Network error — couldn't reach the server.", true);
+        setMeta(label + " " + version + " · failed", true);
       })
       .finally(function () {
         btn.disabled = false;
@@ -402,20 +408,31 @@
   function decodeState(str) {
     try { return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch (e) { return null; }
   }
+  var PLACEHOLDER = "Hit Run to evaluate your HCL.";
+  function outputForState() {
+    var t = (el("output").textContent || "");
+    return (t && t !== PLACEHOLDER && t !== "Evaluating…") ? t : "";
+  }
   function currentState() {
-    return { engine: engine, version: el("versionSelect").value, code: window.editor ? window.editor.getValue() : "" };
+    return {
+      engine: engine,
+      version: el("versionSelect").value,
+      code: window.editor ? window.editor.getValue() : "",
+      output: outputForState(),
+      meta: (el("outputMeta").textContent || ""),
+    };
   }
   function loadInitialState() {
     var m = location.hash.match(/[#&]s=([^&]+)/);
     if (m) {
       var s = decodeState(m[1]);
-      if (s && s.code != null) return { engine: s.engine || engine, version: s.version || "", code: s.code };
+      if (s && s.code != null) return { engine: s.engine || engine, version: s.version || "", code: s.code, output: s.output || "", meta: s.meta || "" };
     }
     try {
       var saved = JSON.parse(localStorage.getItem("hclpg") || "null");
-      if (saved && saved.code != null) return { engine: saved.engine || engine, version: saved.version || "", code: saved.code };
+      if (saved && saved.code != null) return { engine: saved.engine || engine, version: saved.version || "", code: saved.code, output: saved.output || "", meta: saved.meta || "" };
     } catch (e) { /* ignore */ }
-    return { engine: engine, version: "", code: EXAMPLES[0].code };
+    return { engine: engine, version: "", code: EXAMPLES[0].code, output: "", meta: "" };
   }
   function persist() {
     try { localStorage.setItem("hclpg", JSON.stringify(currentState())); } catch (e) { /* ignore */ }
@@ -484,6 +501,8 @@
       });
       window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
       window.editor.onDidChangeModelContent(persist);
+      // Restore a shared/saved result so the output isn't blank on a share link.
+      if (initial.output) { setOutput(initial.output); setMeta(initial.meta || "shared result"); }
     });
   });
 })();

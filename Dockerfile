@@ -12,12 +12,12 @@ RUN apt-get update \
 # of installed versions IS the runtime allowlist (see backend.terraform_utils).
 # A small default set keeps the image lean; more can be installed on demand
 # locally, and overridden via build args.
-ARG TF_VERSIONS="1.10.5 1.9.8"
+ARG TF_VERSIONS="1.15.7 1.14.9"
 RUN git clone --depth=1 https://github.com/tfutils/tfenv.git /opt/tfenv \
     && for v in $TF_VERSIONS; do TFENV_ROOT=/opt/tfenv /opt/tfenv/bin/tfenv install "$v"; done
 
 # Pre-bake pinned OpenTofu versions via tofuenv.
-ARG TOFU_VERSIONS="1.10.10 1.8.11"
+ARG TOFU_VERSIONS="1.12.3 1.11.11"
 RUN git clone --depth=1 https://github.com/tofuutils/tofuenv.git /opt/tofuenv \
     && for v in $TOFU_VERSIONS; do TOFUENV_ROOT=/opt/tofuenv /opt/tofuenv/bin/tofuenv install "$v"; done
 

@@ -10,22 +10,33 @@ Hardened model (see SECURITY notes inline):
 - Each run is wrapped in a wall-clock timeout plus CPU/file/process rlimits.
 """
 
+import hashlib
+import io
 import json
 import os
+import platform
 import re
 import resource
 import shutil
 import subprocess
 import threading
+import urllib.request
 import uuid
+import zipfile
 
 SCRATCH_DIR = os.environ.get("HCL_SCRATCH_DIR", "/scratch")
 
-# Pre-installed engine versions live here (baked into the image). The presence of
-# the binary IS the allowlist — we never run a version that isn't on disk.
+# Versions can live in two places: baked into the image (read-only) and a writable
+# runtime dir (works on read-only deploys like Lambda, where only /tmp is writable).
+RUNTIME_ROOT = os.environ.get("HCL_RUNTIME_ROOT", "/tmp/hcl-engines")
+
+# Optional S3 cache: persists on-demand-installed binaries so they survive cold
+# starts / new containers (set HCL_CACHE_BUCKET to enable).
+CACHE_BUCKET = os.environ.get("HCL_CACHE_BUCKET")
+
 ENGINES = {
-    "terraform": {"root": "/opt/tfenv/versions", "bin": "terraform"},
-    "tofu": {"root": "/opt/tofuenv/versions", "bin": "tofu"},
+    "terraform": {"baked": "/opt/tfenv/versions", "bin": "terraform"},
+    "tofu": {"baked": "/opt/tofuenv/versions", "bin": "tofu"},
 }
 
 _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
@@ -85,103 +96,162 @@ def extract_locals_blocks(text):
     return "\n".join(locals_blocks), rest_of_text
 
 
-# Per-engine installers (tfenv/tofuenv) for on-demand version pulls.
-_INSTALLERS = {
-    "terraform": {"cmd": "/opt/tfenv/bin/tfenv", "root_env": "TFENV_ROOT", "root": "/opt/tfenv"},
-    "tofu": {"cmd": "/opt/tofuenv/bin/tofuenv", "root_env": "TOFUENV_ROOT", "root": "/opt/tofuenv"},
-}
 _INSTALL_LOCK = threading.Lock()
-_INSTALL_TIMEOUT = 180
 
-# Frozen mode (set HCL_FROZEN=1): no on-demand installs — used in read-only
-# deploys (e.g. Lambda) where only the baked-in versions are available.
+# Frozen mode (set HCL_FROZEN=1) disables on-demand installs entirely.
 ALLOW_INSTALL = os.environ.get("HCL_FROZEN") != "1"
 
 
-def ensure_installed(engine, version):
-    """Make sure (engine, version) is installed, pulling it on demand if not.
+def _arch():
+    machine = platform.machine().lower()
+    return "arm64" if machine in ("aarch64", "arm64") else "amd64"
 
-    Only validated semver versions are accepted, and the actual download +
-    checksum verification is done by tfenv/tofuenv from their official sources.
-    Returns the binary path. Raises EvaluationError on bad input / install failure.
+
+def _roots(engine):
+    """Where an engine's versions may live: baked (read-only) + writable runtime."""
+    return [ENGINES[engine]["baked"], os.path.join(RUNTIME_ROOT, engine)]
+
+
+def _binary_path(engine, version):
+    """Existing binary path for (engine, version), across baked + runtime roots."""
+    binary = ENGINES[engine]["bin"]
+    for root in _roots(engine):
+        path = os.path.join(root, version, binary)
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def _download_spec(engine, version):
+    """(`zip_url`, `sums_url`, `zip_name`) for an official release."""
+    arch = _arch()
+    if engine == "terraform":
+        base = "https://releases.hashicorp.com/terraform/{v}".format(v=version)
+        name = "terraform_{v}_linux_{a}.zip".format(v=version, a=arch)
+        return base + "/" + name, base + "/terraform_{v}_SHA256SUMS".format(v=version), name
+    base = "https://github.com/opentofu/opentofu/releases/download/v{v}".format(v=version)
+    name = "tofu_{v}_linux_{a}.zip".format(v=version, a=arch)
+    return base + "/" + name, base + "/tofu_{v}_SHA256SUMS".format(v=version), name
+
+
+def _http_get(url, timeout=60):
+    req = urllib.request.Request(url, headers={"User-Agent": "hcl-playground"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+
+def _cache_key(engine, version):
+    return "engines/{e}/{v}/{a}/{b}".format(
+        e=engine, v=version, a=_arch(), b=ENGINES[engine]["bin"]
+    )
+
+
+def _cache_fetch(engine, version, dest):
+    if not CACHE_BUCKET:
+        return False
+    try:
+        import boto3
+
+        boto3.client("s3").download_file(CACHE_BUCKET, _cache_key(engine, version), dest)
+        return True
+    except Exception:  # noqa: BLE001 - miss / unavailable -> fall through to download
+        return False
+
+
+def _cache_store(engine, version, src):
+    if not CACHE_BUCKET:
+        return
+    try:
+        import boto3
+
+        boto3.client("s3").upload_file(src, CACHE_BUCKET, _cache_key(engine, version))
+    except Exception:  # noqa: BLE001 - caching is best-effort
+        pass
+
+
+def _download_and_verify(engine, version, dest):
+    """Download the official release zip, verify its SHA-256, extract the binary."""
+    zip_url, sums_url, zip_name = _download_spec(engine, version)
+    try:
+        archive = _http_get(zip_url)
+        sums = _http_get(sums_url).decode("utf-8", "replace")
+    except Exception:  # noqa: BLE001
+        raise EvaluationError(
+            "Couldn't download {} {} — is it a real release?".format(engine, version)
+        )
+    expected = None
+    for line in sums.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1] == zip_name:
+            expected = parts[0].lower()
+            break
+    if not expected:
+        raise EvaluationError("No checksum found for {} {}.".format(engine, version))
+    if hashlib.sha256(archive).hexdigest().lower() != expected:
+        raise EvaluationError("Checksum mismatch for {} {}.".format(engine, version))
+    binary = ENGINES[engine]["bin"]
+    with zipfile.ZipFile(io.BytesIO(archive)) as zf:
+        with zf.open(binary) as src, open(dest, "wb") as out:
+            shutil.copyfileobj(src, out)
+
+
+def ensure_installed(engine, version):
+    """Make sure (engine, version) is available, pulling it on demand if not.
+
+    Resolution order: baked image -> writable runtime dir -> S3 cache -> official
+    download (checksum-verified) which is then cached to S3. Returns the path.
     """
     if engine not in ENGINES:
         raise EvaluationError("Unknown engine (expected 'terraform' or 'tofu').")
     if not _VERSION_RE.match(version or ""):
         raise EvaluationError("Invalid version (expected e.g. 1.10.5).")
-    cfg = ENGINES[engine]
-    path = os.path.join(cfg["root"], version, cfg["bin"])
-    if os.path.isfile(path):
+    path = _binary_path(engine, version)
+    if path:
         return path
     if not ALLOW_INSTALL:
         raise EvaluationError("That version isn't available here.")
 
-    installer = _INSTALLERS[engine]
+    dest_dir = os.path.join(RUNTIME_ROOT, engine, version)
+    dest = os.path.join(dest_dir, ENGINES[engine]["bin"])
     with _INSTALL_LOCK:
-        if os.path.isfile(path):  # installed while we waited for the lock
+        path = _binary_path(engine, version)  # installed while we waited
+        if path:
             return path
-        env = {
-            "PATH": "/usr/local/bin:/usr/bin:/bin",
-            "HOME": "/tmp",
-            installer["root_env"]: installer["root"],
-        }
-        try:
-            subprocess.run(
-                [installer["cmd"], "install", version],
-                env=env, shell=False, check=True,
-                capture_output=True, text=True, timeout=_INSTALL_TIMEOUT,
-            )
-        except subprocess.CalledProcessError:
-            raise EvaluationError(
-                "Couldn't install {} {} — is it a real release?".format(engine, version)
-            )
-        except (subprocess.TimeoutExpired, OSError):
-            raise EvaluationError("Timed out installing {} {}.".format(engine, version))
-    if not os.path.isfile(path):
-        raise EvaluationError("Install of {} {} did not produce a binary.".format(engine, version))
-    return path
+        os.makedirs(dest_dir, exist_ok=True)
+        if not _cache_fetch(engine, version, dest):
+            _download_and_verify(engine, version, dest)
+            _cache_store(engine, version, dest)
+        os.chmod(dest, 0o755)
+    return dest
 
 
 def resolve_binary(engine, version):
-    """Map a validated (engine, version) to a pre-installed binary path.
-
-    Raises EvaluationError if the engine is unknown, the version isn't a strict
-    semver, or that version isn't installed in the image.
-    """
+    """Path to an already-available (engine, version) binary, or raise."""
     if engine not in ENGINES:
         raise EvaluationError("Unknown engine (expected 'terraform' or 'tofu').")
     if not _VERSION_RE.match(version or ""):
         raise EvaluationError("Invalid version (expected e.g. 1.9.0).")
-    cfg = ENGINES[engine]
-    path = os.path.join(cfg["root"], version, cfg["bin"])
-    # Defense-in-depth: ensure the resolved path stays under the engine root.
-    if os.path.commonpath([os.path.realpath(path), cfg["root"]]) != cfg["root"]:
-        raise EvaluationError("Invalid version.")
-    if not os.path.isfile(path):
+    path = _binary_path(engine, version)
+    if not path:
         raise EvaluationError("That version isn't available.")
     return path
 
 
 def installed_versions(engine):
-    """Versions actually installed in the image for an engine, newest first.
-
-    This is the dropdown's source of truth — no network, and it can only ever
-    offer versions that ``resolve_binary`` will accept.
-    """
-    cfg = ENGINES.get(engine)
-    if not cfg:
+    """Versions currently on disk for an engine (baked + runtime), newest first."""
+    if engine not in ENGINES:
         return []
-    try:
-        names = os.listdir(cfg["root"])
-    except OSError:
-        return []
-    versions = [
-        name
-        for name in names
-        if _VERSION_RE.match(name)
-        and os.path.isfile(os.path.join(cfg["root"], name, cfg["bin"]))
-    ]
-    return sorted(versions, key=lambda v: [int(p) for p in v.split(".")], reverse=True)
+    binary = ENGINES[engine]["bin"]
+    found = set()
+    for root in _roots(engine):
+        try:
+            names = os.listdir(root)
+        except OSError:
+            continue
+        for name in names:
+            if _VERSION_RE.match(name) and os.path.isfile(os.path.join(root, name, binary)):
+                found.add(name)
+    return sorted(found, key=lambda v: [int(p) for p in v.split(".")], reverse=True)
 
 
 def _validate_code(code):

@@ -105,6 +105,13 @@ select#versionSelect:focus, .ghost-btn:focus { outline: 2px solid var(--accent);
 }
 .copy-btn:hover { color: var(--text); border-color: var(--muted); }
 
+.output-meta {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+    padding: 0.4rem 1.1rem; border-bottom: 1px solid var(--border); background: var(--panel);
+}
+.output-meta.is-error { color: var(--error); }
+.output-meta[hidden] { display: none; }
+
 .output {
     flex: 1; margin: 0; padding: 1rem 1.1rem; overflow: auto; min-height: 0;
     font-family: var(--mono); font-size: 0.85rem; line-height: 1.55; color: var(--text);

@@ -34,8 +34,9 @@ def test_resolve_binary_rejects_bad_input(engine, version):
 def test_resolve_binary_rejects_uninstalled_version(tmp_path, monkeypatch):
     # Valid semver but not installed -> rejected (no binary on disk).
     monkeypatch.setitem(
-        terraform_utils.ENGINES, "terraform", {"root": str(tmp_path), "bin": "terraform"}
+        terraform_utils.ENGINES, "terraform", {"baked": str(tmp_path), "bin": "terraform"}
     )
+    monkeypatch.setattr(terraform_utils, "RUNTIME_ROOT", str(tmp_path / "runtime"))
     with pytest.raises(EvaluationError):
         resolve_binary("terraform", "9.9.9")
 
