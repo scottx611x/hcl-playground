@@ -1,17 +1,23 @@
 FROM python:3.12.2
 
+# Lambda Web Adapter — only activates under the Lambda runtime; ignored by a
+# plain `docker run`, so the same image runs locally and on Lambda.
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 /lambda-adapter /opt/extensions/lambda-adapter
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git curl unzip ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Pre-bake pinned Terraform versions via tfenv (no per-request installs). The set
 # of installed versions IS the runtime allowlist (see backend.terraform_utils).
-ARG TF_VERSIONS="1.10.5 1.9.8 1.8.5 1.7.5 1.6.6 1.5.7"
+# A small default set keeps the image lean; more can be installed on demand
+# locally, and overridden via build args.
+ARG TF_VERSIONS="1.10.5 1.9.8"
 RUN git clone --depth=1 https://github.com/tfutils/tfenv.git /opt/tfenv \
     && for v in $TF_VERSIONS; do TFENV_ROOT=/opt/tfenv /opt/tfenv/bin/tfenv install "$v"; done
 
 # Pre-bake pinned OpenTofu versions via tofuenv.
-ARG TOFU_VERSIONS="1.10.10 1.9.4 1.8.11 1.7.10 1.6.3"
+ARG TOFU_VERSIONS="1.10.10 1.8.11"
 RUN git clone --depth=1 https://github.com/tofuutils/tofuenv.git /opt/tofuenv \
     && for v in $TOFU_VERSIONS; do TOFUENV_ROOT=/opt/tofuenv /opt/tofuenv/bin/tofuenv install "$v"; done
 

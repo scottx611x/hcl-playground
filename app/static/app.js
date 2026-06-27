@@ -3,6 +3,7 @@
 
   var VERSIONS = JSON.parse(document.getElementById("versions-data").textContent || "{}");
   var engine = document.body.dataset.defaultEngine || "terraform";
+  var frozen = document.body.dataset.frozen === "1";  // no on-demand installs (deploy)
 
   // Live function catalog for the selected engine+version (fetched from /functions).
   var hclFunctions = [];
@@ -166,10 +167,12 @@
       opt.value = v;
       select.appendChild(opt);
     });
-    var more = document.createElement("option");
-    more.value = "__install__";
-    more.textContent = "+ install another…";
-    select.appendChild(more);
+    if (!frozen) {
+      var more = document.createElement("option");
+      more.value = "__install__";
+      more.textContent = "+ install another…";
+      select.appendChild(more);
+    }
   }
 
   function sortVersionsDesc(arr) {

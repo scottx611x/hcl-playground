@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js"></script>
 </head>
-<body data-default-engine="{{ default_engine }}">
+<body data-default-engine="{{ default_engine }}" data-frozen="{{ 1 if frozen else 0 }}">
     <header class="topbar">
         <a class="brand" href="/">
             <span class="brand-mark">{ }</span>

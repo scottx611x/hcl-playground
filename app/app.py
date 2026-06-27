@@ -1,6 +1,7 @@
 from flask import Flask, abort, jsonify, render_template, request
 
 from backend.terraform_utils import (
+    ALLOW_INSTALL,
     ENGINES,
     MAX_CODE_BYTES,
     EvaluationError,
@@ -29,6 +30,7 @@ def index():
         "index.html",
         versions=_versions_by_engine(),
         default_engine=DEFAULT_ENGINE,
+        frozen=not ALLOW_INSTALL,
     )
 
 
@@ -52,6 +54,8 @@ def evaluate_route():
 
 @app.route("/install", methods=["POST"])
 def install_route():
+    if not ALLOW_INSTALL:
+        abort(404)
     if not request.is_json:
         abort(415)
     data = request.get_json(silent=True) or {}

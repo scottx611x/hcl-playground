@@ -93,6 +93,10 @@ _INSTALLERS = {
 _INSTALL_LOCK = threading.Lock()
 _INSTALL_TIMEOUT = 180
 
+# Frozen mode (set HCL_FROZEN=1): no on-demand installs — used in read-only
+# deploys (e.g. Lambda) where only the baked-in versions are available.
+ALLOW_INSTALL = os.environ.get("HCL_FROZEN") != "1"
+
 
 def ensure_installed(engine, version):
     """Make sure (engine, version) is installed, pulling it on demand if not.
@@ -109,6 +113,8 @@ def ensure_installed(engine, version):
     path = os.path.join(cfg["root"], version, cfg["bin"])
     if os.path.isfile(path):
         return path
+    if not ALLOW_INSTALL:
+        raise EvaluationError("That version isn't available here.")
 
     installer = _INSTALLERS[engine]
     with _INSTALL_LOCK:
