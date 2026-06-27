@@ -303,6 +303,31 @@
         };
       },
     });
+    // Cmd/Ctrl-click a function name -> open its engine docs (real, obvious gesture).
+    monaco.languages.registerLinkProvider("hcl", {
+      provideLinks: function (model) {
+        var known = {};
+        hclFunctions.forEach(function (f) { known[f.name] = true; });
+        var text = model.getValue();
+        var re = /\b([a-z][a-z0-9_]*)\s*\(/g;
+        var links = [];
+        var m;
+        while ((m = re.exec(text)) !== null) {
+          if (!known[m[1]]) continue;
+          var start = model.getPositionAt(m.index);
+          var end = model.getPositionAt(m.index + m[1].length);
+          links.push({
+            range: {
+              startLineNumber: start.lineNumber, startColumn: start.column,
+              endLineNumber: end.lineNumber, endColumn: end.column,
+            },
+            url: docUrl(m[1]),
+            tooltip: "Open " + m[1] + " docs",
+          });
+        }
+        return { links: links };
+      },
+    });
   }
 
   // ---- Shareable state (URL hash) + localStorage persistence ----
