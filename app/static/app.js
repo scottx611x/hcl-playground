@@ -527,6 +527,37 @@
       );
     });
 
+    // Draggable splitter between the editor and output panes.
+    (function () {
+      var ws = el("workspace"), sp = el("splitter"), dragging = false;
+      if (!ws || !sp) return;
+      sp.addEventListener("mousedown", function (e) {
+        dragging = true;
+        sp.classList.add("dragging");
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "col-resize";
+        e.preventDefault();
+      });
+      addEventListener("mousemove", function (e) {
+        if (!dragging) return;
+        var rect = ws.getBoundingClientRect();
+        var left = Math.max(rect.width * 0.15, Math.min(rect.width * 0.85, e.clientX - rect.left));
+        ws.style.gridTemplateColumns = left + "px 6px 1fr";
+      });
+      addEventListener("mouseup", function () {
+        if (!dragging) return;
+        dragging = false;
+        sp.classList.remove("dragging");
+        document.body.style.userSelect = "";
+        document.body.style.cursor = "";
+        if (window.editor) window.editor.layout();
+      });
+      sp.addEventListener("dblclick", function () {
+        ws.style.gridTemplateColumns = "1fr 6px 1fr";  // reset to 50/50
+        if (window.editor) window.editor.layout();
+      });
+    })();
+
     require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs" } });
     require(["vs/editor/editor.main"], function () {
       registerHcl(window.monaco);

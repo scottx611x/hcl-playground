@@ -88,9 +88,10 @@ select#versionSelect:focus, .ghost-btn:focus { outline: 2px solid var(--accent);
 .github-link:hover { color: var(--text); }
 
 /* ---------- Workspace ---------- */
-.workspace { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.workspace { flex: 1; display: grid; grid-template-columns: 1fr 6px 1fr; min-height: 0; }
 .pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.editor-pane { border-right: 1px solid var(--border); }
+.splitter { background: var(--border); cursor: col-resize; transition: background 0.15s; }
+.splitter:hover, .splitter.dragging { background: var(--accent); }
 .pane-head {
     display: flex; align-items: center; justify-content: space-between;
     font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
@@ -150,8 +151,9 @@ select#versionSelect:focus, .ghost-btn:focus { outline: 2px solid var(--accent);
 .about .credit { margin-top: 2.5rem; color: var(--muted); font-size: 0.9rem; }
 
 @media (max-width: 820px) {
-    .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-    .editor-pane { border-right: none; border-bottom: 1px solid var(--border); }
+    .workspace { grid-template-columns: 1fr !important; grid-template-rows: 1fr 1fr; }
+    .splitter { display: none; }
+    .editor-pane { border-bottom: 1px solid var(--border); }
     .topbar { gap: 0.5rem; }
     .brand-name { display: none; }
 }
