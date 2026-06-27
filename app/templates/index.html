@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <title>HCL Playground</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -50,7 +50,7 @@
 
     <footer class="site-footer">
         <span>HCL &amp; OpenTofu expression playground &middot; offline <code>console</code>, no providers.</span>
-        <span>By <a href="https://github.com/scottx611x" target="_blank" rel="noopener">Scott Ouellette</a> &middot; <a href="https://github.com/scottx611x/hcl-playground" target="_blank" rel="noopener">source</a></span>
+        <span>By <a href="https://github.com/scottx611x" target="_blank" rel="noopener">Scott Ouellette</a> &middot; <a href="/about">about</a> &middot; <a href="https://github.com/scottx611x/hcl-playground" target="_blank" rel="noopener">source</a></span>
     </footer>
 
     <script id="versions-data" type="application/json">{{ versions|tojson }}</script>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <title>About · HCL Playground</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/">
+            <span class="brand-mark">{ }</span>
+            <span class="brand-name">HCL Playground</span>
+        </a>
+        <div class="controls">
+            <a class="ghost-btn" href="/" style="text-decoration:none;">← Playground</a>
+            <a class="github-link" href="https://github.com/scottx611x/hcl-playground" target="_blank" rel="noopener" aria-label="GitHub">
+                <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            </a>
+        </div>
+    </header>
+
+    <main class="about">
+        <h1>What is this?</h1>
+        <p class="lead">
+            A browser playground for evaluating <strong>HCL</strong> expressions with
+            <strong>Terraform</strong> or <strong>OpenTofu</strong> — no install, no
+            project scaffolding, no <code>init</code>/<code>console</code> loop.
+        </p>
+
+        <h2>Why</h2>
+        <p>
+            You just want to know how <code>setproduct()</code> behaves, or test a gnarly
+            <code>for</code> expression. Normally that means: install Terraform, make a
+            project, write HCL, <code>terraform init</code>, <code>terraform console</code>,
+            fix a typo, <code>Ctrl+C</code>, edit, repeat. This skips all of it — type an
+            expression, hit <strong>Run</strong>.
+        </p>
+
+        <h2>How it works</h2>
+        <p>
+            Your input is split: <code>locals { }</code> blocks become a tiny
+            <code>main.tf</code>, and the bare expression is piped to
+            <code>&lt;engine&gt; console</code> in a throwaway directory that's created,
+            evaluated, and deleted per request. Autocomplete and hover docs come straight
+            from the selected binary's own <code>metadata functions</code>, so they're exact
+            for whatever engine + version you've picked.
+        </p>
+
+        <h2>Engines &amp; versions</h2>
+        <p>
+            Toggle between Terraform and OpenTofu; a range of versions is baked in, and you
+            can <strong>install any other version on demand</strong> from the version menu —
+            pulled from official, checksum-verified sources and cached.
+        </p>
+
+        <h2>Security</h2>
+        <ul>
+            <li><strong>No shell.</strong> Commands run as argv lists; the version is validated against installed binaries, never interpolated.</li>
+            <li><strong>Offline, expression-only.</strong> Providers, resources, data sources, modules, and filesystem functions (<code>file()</code>, …) are rejected; <code>init</code> is <code>-backend=false</code> — no network, no file reads.</li>
+            <li><strong>Bounded.</strong> Per-run timeout + CPU/file/process limits; request size capped; runs non-root with dropped capabilities.</li>
+            <li><strong>No reflection.</strong> Evaluation is an async JSON API — your code is never echoed into the page (no XSS), and it's CSRF-resistant.</li>
+        </ul>
+
+        <h2>Run it yourself</h2>
+        <pre class="about-code">git clone https://github.com/scottx611x/hcl-playground
+cd hcl-playground
+make run        # → http://localhost:8080</pre>
+
+        <p class="credit">
+            Built by <a href="https://github.com/scottx611x" target="_blank" rel="noopener">Scott Ouellette</a>.
+            Source on <a href="https://github.com/scottx611x/hcl-playground" target="_blank" rel="noopener">GitHub</a>.
+        </p>
+    </main>
+</body>
+</html>

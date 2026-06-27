@@ -75,6 +75,11 @@ def functions_route():
     return jsonify({"functions": functions})
 
 
+@app.route("/about", methods=["GET"])
+def about():
+    return render_template("about.html")
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return "healthy", 200

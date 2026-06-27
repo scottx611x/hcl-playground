@@ -123,6 +123,25 @@ select#versionSelect:focus, .ghost-btn:focus { outline: 2px solid var(--accent);
 .site-footer a:hover { text-decoration: underline; }
 .site-footer code { font-family: var(--mono); color: var(--text); }
 
+/* ---------- About page ---------- */
+.about {
+    max-width: 760px; margin: 0 auto; padding: 3rem 1.4rem 4rem; line-height: 1.7;
+}
+.about h1 { font-size: 2.2rem; margin: 0 0 0.6rem; letter-spacing: -0.02em; }
+.about h2 { font-size: 1.15rem; margin: 2.2rem 0 0.5rem; color: var(--accent-2); }
+.about .lead { font-size: 1.2rem; color: var(--text); }
+.about p, .about li { color: #c7ccd6; }
+.about ul { padding-left: 1.2rem; }
+.about li { margin-bottom: 0.5rem; }
+.about code { font-family: var(--mono); background: var(--panel-2); padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.9em; }
+.about strong { color: var(--text); }
+.about a { color: var(--accent-2); }
+.about-code {
+    font-family: var(--mono); font-size: 0.85rem; background: #0c0e13; color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; overflow-x: auto;
+}
+.about .credit { margin-top: 2.5rem; color: var(--muted); font-size: 0.9rem; }
+
 @media (max-width: 820px) {
     .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
     .editor-pane { border-right: none; border-bottom: 1px solid var(--border); }

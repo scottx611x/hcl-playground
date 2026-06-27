@@ -10,7 +10,7 @@
 
   var EXAMPLES = [
     {
-      name: "setproduct + for",
+      name: "subnets across AZs",
       code: [
         "// Everything outside a locals block is piped to `console`.",
         "locals {",
@@ -18,56 +18,53 @@
         '  availability_zones = ["a", "b"]',
         "",
         "  region_az_combinations = setproduct(local.regions, local.availability_zones)",
+        "}",
         "",
-        "  network_configurations = [",
-        "    for combo in local.region_az_combinations : {",
-        "      region            = combo[0]",
-        '      availability_zone = format("%s%s", combo[0], combo[1])',
-        "    }",
+        "[for i, combo in local.region_az_combinations : {",
+        '  az   = format("%s%s", combo[0], combo[1])',
+        '  cidr = cidrsubnet("10.0.0.0/16", 8, i)',
+        "}]",
+      ].join("\n"),
+    },
+    {
+      name: "🃏 deck of cards",
+      code: [
+        "// 52 cards from a Cartesian product",
+        '[for c in setproduct(["♠", "♥", "♦", "♣"], ["A","K","Q","J","10","9","8","7","6","5","4","3","2"]) :',
+        '  "${c[1]}${c[0]}"]',
+      ].join("\n"),
+    },
+    {
+      name: "📊 ASCII bar chart",
+      code: [
+        "locals {",
+        "  metrics = { cpu = 7, mem = 4, disk = 9, net = 2 }",
+        "}",
+        "",
+        "// draw a bar per metric",
+        '{ for k, v in local.metrics : k => join("", [for i in range(v) : "█"]) }',
+      ].join("\n"),
+    },
+    {
+      name: "CSV → objects",
+      code: 'csvdecode("name,role,team\\nscott,engineer,platform\\nada,scientist,research")',
+    },
+    {
+      name: "multiplication table",
+      code: "{ for x in range(1, 6) : x => { for y in range(1, 6) : y => x * y } }",
+    },
+    {
+      name: "index a list by key",
+      code: [
+        "locals {",
+        "  users = [",
+        '    { id = "u1", name = "Scott", role = "owner" },',
+        '    { id = "u2", name = "Ada",   role = "admin" },',
         "  ]",
         "}",
         "",
-        "local.network_configurations",
-      ].join("\n"),
-    },
-    {
-      name: "string functions",
-      code: [
-        "locals {",
-        '  name = "  Birds of North Andover  "',
-        "}",
-        "",
-        'upper(trimspace(local.name))',
-      ].join("\n"),
-    },
-    {
-      name: "maps & merge",
-      code: [
-        "locals {",
-        '  base    = { env = "dev", region = "us-east-1" }',
-        '  overEx  = { region = "us-west-2", team = "platform" }',
-        "}",
-        "",
-        "merge(local.base, local.overEx)",
-      ].join("\n"),
-    },
-    {
-      name: "cidr math",
-      code: 'cidrsubnets("10.0.0.0/16", 4, 4, 8, 8)',
-    },
-    {
-      name: "for + filter (map)",
-      code: [
-        "locals {",
-        "  instances = {",
-        '    web1 = { env = "prod", size = "large" }',
-        '    web2 = { env = "dev",  size = "small" }',
-        '    db1  = { env = "prod", size = "large" }',
-        "  }",
-        "}",
-        "",
-        "// keep only prod, project to their size",
-        "{ for name, i in local.instances : name => i.size if i.env == \"prod\" }",
+        "// list -> map keyed by id",
+        "{ for u in local.users : u.id => u }",
       ].join("\n"),
     },
     {
@@ -81,14 +78,32 @@
         "  ]",
         "}",
         "",
-        "// classic grouping: role => [names...]",
+        "// role => [names...]",
         "{ for s in local.servers : s.role => s.name... }",
       ].join("\n"),
     },
     {
-      name: "JSON in/out",
+      name: "merge tags w/ defaults",
       code: [
-        'jsondecode("{\\"tags\\":[\\"a\\",\\"b\\"],\\"count\\":3}")["tags"]',
+        "locals {",
+        '  default_tags  = { managed_by = "terraform", env = "dev" }',
+        '  resource_tags = { env = "prod", app = "birds" }',
+        "}",
+        "",
+        "merge(local.default_tags, local.resource_tags)",
+      ].join("\n"),
+    },
+    {
+      name: "generate an IAM policy",
+      code: [
+        "jsonencode({",
+        '  Version = "2012-10-17"',
+        "  Statement = [{",
+        '    Effect   = "Allow"',
+        '    Action   = ["s3:GetObject", "s3:ListBucket"]',
+        '    Resource = "arn:aws:s3:::birds-of-north-andover/*"',
+        "  }]",
+        "})",
       ].join("\n"),
     },
     {
@@ -113,8 +128,23 @@
       ].join("\n"),
     },
     {
-      name: "flatten + distinct + sort",
-      code: 'sort(distinct(flatten([["b", "a"], ["a", "c"]])))',
+      name: "🌱 OpenTofu only: cidrcontains",
+      engine: "tofu",
+      code: [
+        "// cidrcontains / urldecode / base64gunzip are OpenTofu-only.",
+        "// Switch the engine to Terraform and this errors — the function doesn't exist.",
+        'cidrcontains("10.0.0.0/16", "10.0.42.5")',
+      ].join("\n"),
+    },
+    {
+      name: "🏗️ Terraform only: ephemeralasnull",
+      engine: "terraform",
+      version: "1.10.5",
+      code: [
+        "// ephemeralasnull is Terraform-only (1.10+).",
+        "// Switch to OpenTofu and it errors — it doesn't have it.",
+        'ephemeralasnull("this would be a secret")',
+      ].join("\n"),
     },
     {
       name: "dates & durations",
@@ -236,7 +266,11 @@
       b.type = "button";
       b.textContent = ex.name;
       b.addEventListener("click", function () {
+        if (ex.engine && ex.engine !== engine) { setEngine(ex.engine); }
+        if (ex.version) { selectVersion(ex.version); }
+        refreshFunctions();
         if (window.editor) window.editor.setValue(ex.code);
+        persist();
         menu.hidden = true;
         el("examplesBtn").setAttribute("aria-expanded", "false");
       });

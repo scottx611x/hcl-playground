@@ -1,9 +1,11 @@
-# hcl-playground
-https://github.com/scottx611x/hcl-playground/assets/5629547/c434d740-2370-4d9b-bf64-52e0eda41b64
+# HCL Playground
 
-## Beta Site
+Evaluate **HCL** expressions in your browser with **Terraform** or **OpenTofu** —
+no install, no project, no `init`/`console` loop. Type an expression, hit Run.
 
-https://development.hcl-playground.com/
+![HCL Playground](docs/screenshot.png)
+
+<!-- TODO: replace the screenshot above with a fresh demo video/GIF -->
 
 ## Description
 
