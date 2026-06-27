@@ -38,6 +38,7 @@ USER app-user
 
 EXPOSE 8080
 
-VOLUME ["/scratch"]
+# /scratch is an ephemeral per-request work area; no external volume needed.
+# (For a hardened run with --read-only, mount a tmpfs there — see the README.)
 
 CMD ["uwsgi", "--ini", "uwsgi.ini"]

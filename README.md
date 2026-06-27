@@ -50,89 +50,30 @@ If you've been in the depths of attempting to get "creative" with cobbling toget
 - Docker installed on your local machine
 - Git (for cloning the repository)
 
-### Local Development
+### Run it (one command)
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd hcl-playground
-   ```
-
-2. **Build the Docker image:**
-   ```bash
-   docker build -t hcl-playground .
-   ```
-
-3. **Run the Docker container:**
-   ```bash
-   docker run -v /tmp:/scratch -it -p 8080:8080 hcl-playground
-   ```
-   Access the application at `http://localhost:8080`.
-
-## CI/CD Pipeline (CircleCI)
-
-The CI configuration is defined in `.circleci/config.yml`. The key jobs in the pipeline include:
-
-1. **AWS Authentication (`aws-auth`)**:
-   Obtains temporary AWS credentials via [CircleCI's OIDC pattern](https://circleci.com/docs/openid-connect-tokens/) for use in subsequent steps. This is necessary for actions like pushing Docker images to ECR and updating Kubernetes configurations.
-
-2. **Push Docker Image (`push-image`)**:
-   Builds the Docker image and pushes it to AWS ECR
-
-3. **Deploy to EKS (`eks-deploy`)**:
-   - Installs `kubectl` and `helm`.
-   - Sets up Kubernetes configuration to be able to interact with the EKS cluster.
-   - Applies Kubernetes deployment, service, and ingress manifests to the EKS cluster.
-   - Verifies the deployment status.
-
-4. **Run Tests (`test`)**:
-   Pulls the Docker image built earlier in the pipeline from ECR and runs tests using Cypress.
-
-5. **Setup Infrastructure (`setup-infra`)**:
-   Uses Terraform to set up or update infrastructure as defined in the Terraform files located in the project.
-
-### Workflow
-
-The `build-deploy-dev` workflow orchestrates the above jobs:
-
-- We start by setting up any required backing infrastructure using Terraform.
-- Then we build and push the Docker image to ECR, runs tests against the image we just built, and if successful finally deploys to our EKS cluster
-- The workflow is configured to run on pull requests only, excluding the `main` branch as development efforts are still in progress to get to a production-ready state
-
-## Testing
-
-### Unit tests
-
-```shell
-$ docker build --build-arg INSTALL_DEV_DEPS=true -t hcl-playground .
-$ docker run -v /tmp:/scratch -it hcl-playground python -m pytest -p no:cacheprovider
+```bash
+make run        # build + run on http://localhost:8080
 ```
 
-### Cypress-Based E2E Tests
+That's it — it's a single stateless container. `/scratch` is an ephemeral
+per-request work area inside the container, so there's no volume/DB/cluster to
+set up.
 
-To run Cypress-based tests:
+Other targets:
 
-1. **Ensure Cypress is Installed**:
-   If Cypress is not already installed, you can install it by running the following in the project root:
-   ```bash
-   npm install
-   ```
+```bash
+make secure     # run with container hardening (read-only fs, dropped caps, mem/pid limits)
+make test       # build with dev deps and run the unit tests in the container
+make e2e        # run Cypress against a running instance (start `make run` first)
+```
 
-2. **Run Cypress Tests**:
-   Execute the Cypress tests using the Cypress UI:
-   ```bash
-   npx cypress open
-   ```
-   Or for headless testing:
-   ```bash
-   npx cypress run
-   ```
+Engine versions are baked in at build time; override with build args:
 
-   In the CI pipeline, Cypress tests are run as part of the `test` job using the Cypress CircleCI orb.
-
-## Deployment
-
-The application is deployed to AWS EKS using Kubernetes manifests. The deployment process is automated through the CircleCI pipeline, which builds the Docker image, pushes it to ECR, and then updates the Kubernetes deployment on EKS.
+```bash
+docker build --build-arg TF_VERSIONS="1.9.8 1.8.5" \
+             --build-arg TOFU_VERSIONS="1.8.5 1.7.3" -t hcl-playground .
+```
 
 ## Authors
 
