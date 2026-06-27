@@ -143,6 +143,31 @@
     return document.getElementById(id);
   }
 
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        var ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error("copy failed"));
+      } catch (e) { reject(e); }
+    });
+  }
+
+  function flash(btn, msg, restore) {
+    btn.textContent = msg;
+    setTimeout(function () { btn.textContent = restore; }, 1400);
+  }
+
   var available = {};  // engine -> [versions] from the release feed (cached client-side)
 
   function sortVersionsDesc(arr) {
@@ -489,16 +514,17 @@
       }
     });
     el("copyBtn").addEventListener("click", function () {
-      navigator.clipboard && navigator.clipboard.writeText(el("output").textContent || "");
+      copyText(el("output").textContent || "");
     });
     el("versionSelect").addEventListener("change", onVersionChange);
     el("shareBtn").addEventListener("click", function () {
       var url = location.origin + location.pathname + "#s=" + encodeState(currentState());
       history.replaceState(null, "", url);
-      if (navigator.clipboard) navigator.clipboard.writeText(url);
       var b = this, prev = b.textContent;
-      b.textContent = "Copied!";
-      setTimeout(function () { b.textContent = prev; }, 1200);
+      copyText(url).then(
+        function () { flash(b, "Link copied!", prev); },
+        function () { flash(b, "Press ⌘/Ctrl+C", prev); }
+      );
     });
 
     require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs" } });
