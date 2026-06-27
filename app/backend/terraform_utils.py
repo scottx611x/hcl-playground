@@ -259,8 +259,9 @@ def _fetch_available(engine):
             data = json.loads(_http_get("https://releases.hashicorp.com/terraform/index.json", 15))
             names = data.get("versions", {}).keys()
         elif engine == "tofu":
-            data = json.loads(_http_get("https://api.github.com/repos/opentofu/opentofu/releases?per_page=60", 15))
-            names = [(r.get("tag_name") or "").lstrip("v") for r in data]
+            # Tags are far lighter than the releases API (no changelog/asset bodies).
+            data = json.loads(_http_get("https://api.github.com/repos/opentofu/opentofu/tags?per_page=100", 15))
+            names = [(t.get("name") or "").lstrip("v") for t in data]
         else:
             return []
     except Exception:  # noqa: BLE001 - feed unavailable -> just offer what's installed

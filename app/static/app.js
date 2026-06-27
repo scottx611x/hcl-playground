@@ -496,6 +496,8 @@
     selectVersion(initial.version);
     refreshFunctions();
     buildExamplesMenu();
+    // Warm both engines' version lists up front so switching engine is instant.
+    Object.keys(VERSIONS).forEach(loadAvailable);
 
     el("engineToggle").addEventListener("click", function (e) {
       var btn = e.target.closest(".engine-btn");
