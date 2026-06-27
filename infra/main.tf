@@ -37,9 +37,35 @@ resource "aws_ecr_repository" "hcl_playground" {
 
 # __generated__ by OpenTofu from "tha233/hcl-playground.com"
 resource "aws_apigatewayv2_api_mapping" "hcl" {
-  api_id          = "rpi508p8lc"
-  domain_name     = "hcl-playground.com"
-  stage           = "$default"
+  api_id      = aws_apigatewayv2_api.hcl.id
+  domain_name = aws_apigatewayv2_domain_name.hcl.id
+  stage       = aws_apigatewayv2_stage.default.id
+}
+
+# Recreated in Terraform (replacing the original API Gateway quick-create ones).
+resource "aws_apigatewayv2_integration" "lambda" {
+  api_id                 = aws_apigatewayv2_api.hcl.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.hcl_playground.arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "default" {
+  api_id    = aws_apigatewayv2_api.hcl.id
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.hcl.id
+  name        = "$default"
+  auto_deploy = true
+
+  default_route_settings {
+    throttling_rate_limit  = 10
+    throttling_burst_limit = 20
+  }
 }
 
 # __generated__ by OpenTofu
@@ -160,7 +186,7 @@ resource "aws_lambda_permission" "apigw" {
   principal              = "apigateway.amazonaws.com"
   principal_org_id       = null
   source_account         = null
-  source_arn             = "arn:aws:execute-api:us-east-1:386710959426:rpi508p8lc/*/*"
+  source_arn             = "${aws_apigatewayv2_api.hcl.execution_arn}/*/*"
   statement_id           = "apigw-invoke"
 }
 
