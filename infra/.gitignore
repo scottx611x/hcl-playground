@@ -1,0 +1,6 @@
+# Local OpenTofu state — never commit (contains resource detail).
+*.tfstate
+*.tfstate.*
+.terraform/
+tofu
+crash.log
