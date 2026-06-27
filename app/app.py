@@ -81,7 +81,7 @@ def functions_route():
 
 @app.route("/about", methods=["GET"])
 def about():
-    return render_template("about.html")
+    return render_template("about.html", frozen=not ALLOW_INSTALL)
 
 
 @app.route("/health", methods=["GET"])

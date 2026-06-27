@@ -51,9 +51,9 @@
 
         <h2>Engines &amp; versions</h2>
         <p>
-            Toggle between Terraform and OpenTofu; a range of versions is baked in, and you
-            can <strong>install any other version on demand</strong> from the version menu —
-            pulled from official, checksum-verified sources and cached.
+            Toggle between Terraform and OpenTofu; a range of versions is baked in{% if not frozen %},
+            and you can <strong>install any other version on demand</strong> from the version
+            menu — pulled from official, checksum-verified sources and cached{% endif %}.
         </p>
 
         <h2>Security</h2>
