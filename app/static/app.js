@@ -175,13 +175,80 @@
     });
   }
 
+  function registerProviders(monaco) {
+    var fns = window.HCL_FUNCTIONS || [];
+    monaco.languages.registerCompletionItemProvider("hcl", {
+      provideCompletionItems: function (model, position) {
+        var word = model.getWordUntilPosition(position);
+        var range = {
+          startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
+          startColumn: word.startColumn, endColumn: word.endColumn,
+        };
+        return {
+          suggestions: fns.map(function (fn) {
+            return {
+              label: fn.name,
+              kind: monaco.languages.CompletionItemKind.Function,
+              detail: fn.sig,
+              documentation: fn.doc,
+              insertText: fn.name + "($0)",
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              range: range,
+            };
+          }),
+        };
+      },
+    });
+    monaco.languages.registerHoverProvider("hcl", {
+      provideHover: function (model, position) {
+        var word = model.getWordAtPosition(position);
+        if (!word) return null;
+        var fn = fns.filter(function (f) { return f.name === word.word; })[0];
+        if (!fn) return null;
+        return { contents: [{ value: "**" + fn.sig + "**" }, { value: fn.doc }] };
+      },
+    });
+  }
+
+  // ---- Shareable state (URL hash) + localStorage persistence ----
+  function encodeState(s) { return btoa(unescape(encodeURIComponent(JSON.stringify(s)))); }
+  function decodeState(str) {
+    try { return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch (e) { return null; }
+  }
+  function currentState() {
+    return { engine: engine, version: el("versionSelect").value, code: window.editor ? window.editor.getValue() : "" };
+  }
+  function loadInitialState() {
+    var m = location.hash.match(/[#&]s=([^&]+)/);
+    if (m) {
+      var s = decodeState(m[1]);
+      if (s && s.code != null) return { engine: s.engine || engine, version: s.version || "", code: s.code };
+    }
+    try {
+      var saved = JSON.parse(localStorage.getItem("hclpg") || "null");
+      if (saved && saved.code != null) return { engine: saved.engine || engine, version: saved.version || "", code: saved.code };
+    } catch (e) { /* ignore */ }
+    return { engine: engine, version: "", code: EXAMPLES[0].code };
+  }
+  function persist() {
+    try { localStorage.setItem("hclpg", JSON.stringify(currentState())); } catch (e) { /* ignore */ }
+  }
+  function selectVersion(v) {
+    var select = el("versionSelect");
+    if (v && Array.prototype.some.call(select.options, function (o) { return o.value === v; })) {
+      select.value = v;
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
-    setEngine(engine);
+    var initial = loadInitialState();
+    setEngine(initial.engine);
+    selectVersion(initial.version);
     buildExamplesMenu();
 
     el("engineToggle").addEventListener("click", function (e) {
       var btn = e.target.closest(".engine-btn");
-      if (btn) setEngine(btn.dataset.engine);
+      if (btn) { setEngine(btn.dataset.engine); persist(); }
     });
     el("runBtn").addEventListener("click", run);
     el("examplesBtn").addEventListener("click", function () {
@@ -198,12 +265,22 @@
     el("copyBtn").addEventListener("click", function () {
       navigator.clipboard && navigator.clipboard.writeText(el("output").textContent || "");
     });
+    el("versionSelect").addEventListener("change", persist);
+    el("shareBtn").addEventListener("click", function () {
+      var url = location.origin + location.pathname + "#s=" + encodeState(currentState());
+      history.replaceState(null, "", url);
+      if (navigator.clipboard) navigator.clipboard.writeText(url);
+      var b = this, prev = b.textContent;
+      b.textContent = "Copied!";
+      setTimeout(function () { b.textContent = prev; }, 1200);
+    });
 
     require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs" } });
     require(["vs/editor/editor.main"], function () {
       registerHcl(window.monaco);
+      registerProviders(window.monaco);
       window.editor = monaco.editor.create(el("editor"), {
-        value: EXAMPLES[0].code,
+        value: initial.code,
         language: "hcl",
         theme: "vs-dark",
         fontSize: 14,
@@ -212,8 +289,10 @@
         scrollBeyondLastLine: false,
         automaticLayout: true,
         padding: { top: 14 },
+        quickSuggestions: true,
       });
       window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
+      window.editor.onDidChangeModelContent(persist);
     });
   });
 })();
