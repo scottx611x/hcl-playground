@@ -20,6 +20,7 @@ import resource
 import shutil
 import subprocess
 import threading
+import time
 import urllib.request
 import uuid
 import zipfile
@@ -235,6 +236,37 @@ def resolve_binary(engine, version):
     if not path:
         raise EvaluationError("That version isn't available.")
     return path
+
+
+_AVAILABLE_CACHE = {}  # engine -> (timestamp, [versions])
+_AVAILABLE_TTL = 3600
+
+
+def available_versions(engine, limit=30):
+    """Installable versions from the engine's official release feed (cached)."""
+    cached = _AVAILABLE_CACHE.get(engine)
+    if cached and time.time() - cached[0] < _AVAILABLE_TTL:
+        return cached[1]
+    versions = _fetch_available(engine)[:limit]
+    if versions:
+        _AVAILABLE_CACHE[engine] = (time.time(), versions)
+    return versions
+
+
+def _fetch_available(engine):
+    try:
+        if engine == "terraform":
+            data = json.loads(_http_get("https://releases.hashicorp.com/terraform/index.json", 15))
+            names = data.get("versions", {}).keys()
+        elif engine == "tofu":
+            data = json.loads(_http_get("https://api.github.com/repos/opentofu/opentofu/releases?per_page=60", 15))
+            names = [(r.get("tag_name") or "").lstrip("v") for r in data]
+        else:
+            return []
+    except Exception:  # noqa: BLE001 - feed unavailable -> just offer what's installed
+        return []
+    stable = [v for v in names if _VERSION_RE.match(v)]
+    return sorted(stable, key=lambda v: [int(p) for p in v.split(".")], reverse=True)
 
 
 def installed_versions(engine):

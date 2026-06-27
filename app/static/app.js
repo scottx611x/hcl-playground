@@ -143,55 +143,75 @@
     return document.getElementById(id);
   }
 
-  function populateVersions() {
-    var select = el("versionSelect");
-    var list = VERSIONS[engine] || [];
-    select.innerHTML = "";
-    list.forEach(function (v) {
-      var opt = document.createElement("option");
-      opt.textContent = v;
-      opt.value = v;
-      select.appendChild(opt);
-    });
-    if (!frozen) {
-      var more = document.createElement("option");
-      more.value = "__install__";
-      more.textContent = "+ install another…";
-      select.appendChild(more);
-    }
-  }
+  var available = {};  // engine -> [versions] from the release feed (cached client-side)
 
   function sortVersionsDesc(arr) {
-    return arr.sort(function (a, b) {
+    return arr.slice().sort(function (a, b) {
       var pa = a.split(".").map(Number), pb = b.split(".").map(Number);
       for (var i = 0; i < 3; i++) { if (pa[i] !== pb[i]) return pb[i] - pa[i]; }
       return 0;
     });
   }
+  function isInstalled(v) { return (VERSIONS[engine] || []).indexOf(v) !== -1; }
+  function mergedVersions() {
+    var seen = {}, out = [];
+    (VERSIONS[engine] || []).concat(available[engine] || []).forEach(function (v) {
+      if (!seen[v]) { seen[v] = 1; out.push(v); }
+    });
+    return sortVersionsDesc(out);
+  }
 
-  function promptInstall() {
+  function populateVersions() {
     var select = el("versionSelect");
-    select.selectedIndex = 0;  // move off the placeholder
-    var label = engine === "tofu" ? "OpenTofu" : "Terraform";
-    var v = (window.prompt("Install a " + label + " version (e.g. 1.10.10):") || "").trim();
-    if (!v) { persist(); refreshFunctions(); return; }
-    if (!/^\d+\.\d+\.\d+$/.test(v)) { setOutput("Enter a version like 1.10.10", true); return; }
-    if ((VERSIONS[engine] || []).indexOf(v) !== -1) { selectVersion(v); refreshFunctions(); return; }
-    setOutput("Installing " + label + " " + v + "… (first use can take a moment)");
+    var keep = select.value;
+    select.innerHTML = "";
+    mergedVersions().forEach(function (v) {
+      var opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+    if (keep) selectVersion(keep);
+  }
+
+  function loadAvailable(eng) {
+    if (frozen || available[eng]) { if (eng === engine) populateVersions(); return; }
+    fetch("/available?engine=" + encodeURIComponent(eng))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        available[eng] = d.available || [];
+        if (d.installed) VERSIONS[eng] = d.installed;
+        if (eng === engine) populateVersions();
+      })
+      .catch(function () { /* keep installed-only list */ });
+  }
+
+  // Seamless install: picking a not-yet-installed version pulls it in the
+  // background with a status line — no prompt.
+  function onVersionChange() {
+    var v = el("versionSelect").value;
+    if (!v) return;
+    persist();
+    if (isInstalled(v)) { refreshFunctions(); return; }
+    var label = engineLabel(), btn = el("runBtn");
+    setMeta("Fetching " + label + " " + v + "…");
+    btn.disabled = true;
     fetch("/install", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ engine: engine, version: v }),
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
-        if (!res.ok || res.d.error) { setOutput(res.d.error || "Install failed.", true); return; }
-        VERSIONS[engine] = sortVersionsDesc((VERSIONS[engine] || []).concat([v]));
-        populateVersions();
-        selectVersion(v);
-        setOutput("Installed " + label + " " + v + ". Ready.");
-        persist(); refreshFunctions();
+        if (!res.ok || res.d.error) {
+          setMeta(res.d.error || "Couldn't fetch " + label + " " + v, true);
+        } else {
+          VERSIONS[engine] = (VERSIONS[engine] || []).concat([v]);
+          setMeta(label + " " + v + " ready");
+          refreshFunctions();
+        }
       })
-      .catch(function () { setOutput("Install failed — couldn't reach the server.", true); });
+      .catch(function () { setMeta("Couldn't reach the server", true); })
+      .finally(function () { btn.disabled = false; });
   }
 
   function setEngine(next) {
@@ -201,6 +221,7 @@
       btn.classList.toggle("is-active", btn.dataset.engine === engine);
     });
     populateVersions();
+    loadAvailable(engine);
   }
 
   function engineLabel() {
@@ -224,7 +245,7 @@
   function run() {
     if (!window.editor) return;
     var version = el("versionSelect").value;
-    if (!version || version === "__install__") {
+    if (!version) {
       setOutput("Pick a version first.", true);
       return;
     }
@@ -319,7 +340,7 @@
 
   function refreshFunctions() {
     var version = el("versionSelect").value;
-    if (!version || version === "__install__") { hclFunctions = []; return; }
+    if (!version) { hclFunctions = []; return; }
     var key = engine + "|" + version;
     if (functionsCache[key]) { hclFunctions = functionsCache[key]; return; }
     fetch("/functions?engine=" + encodeURIComponent(engine) + "&version=" + encodeURIComponent(version))
@@ -470,10 +491,7 @@
     el("copyBtn").addEventListener("click", function () {
       navigator.clipboard && navigator.clipboard.writeText(el("output").textContent || "");
     });
-    el("versionSelect").addEventListener("change", function () {
-      if (this.value === "__install__") { promptInstall(); return; }
-      persist(); refreshFunctions();
-    });
+    el("versionSelect").addEventListener("change", onVersionChange);
     el("shareBtn").addEventListener("click", function () {
       var url = location.origin + location.pathname + "#s=" + encodeState(currentState());
       history.replaceState(null, "", url);
