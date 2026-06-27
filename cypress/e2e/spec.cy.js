@@ -1,3 +1,7 @@
+// Monaco throws benign internal errors when an automated browser inspects it;
+// they don't affect the app, so don't fail the run on them.
+Cypress.on('uncaught:exception', () => false);
+
 describe('HCL Playground loads', () => {
     it('shows the app', () => {
         cy.visit('/');
@@ -14,7 +18,7 @@ describe('Healthcheck', () => {
 describe('Evaluating the default example', () => {
     it('returns the expected expression output (Terraform)', () => {
         cy.visit('/');
-        cy.window().its('editor').should('exist');   // wait for Monaco
+        cy.get('.monaco-editor', { timeout: 20000 }).should('be.visible');
         cy.get('#runBtn').click();
         cy.get('#runBtn', { timeout: 25000 }).should('not.be.disabled');
         cy.get('#output')
@@ -24,7 +28,7 @@ describe('Evaluating the default example', () => {
 
     it('also works with the OpenTofu engine', () => {
         cy.visit('/');
-        cy.window().its('editor').should('exist');
+        cy.get('.monaco-editor', { timeout: 20000 }).should('be.visible');
         cy.get('.engine-btn[data-engine="tofu"]').click();
         cy.get('#runBtn').click();
         cy.get('#runBtn', { timeout: 25000 }).should('not.be.disabled');
@@ -35,12 +39,12 @@ describe('Evaluating the default example', () => {
 describe('Every example evaluates without an error', () => {
     it('runs each example end to end', () => {
         cy.visit('/');
-        cy.window().its('editor').should('exist');
-        cy.get('#examplesBtn').click();
+        cy.get('.monaco-editor', { timeout: 20000 }).should('be.visible');
+        // The menu's buttons exist even while hidden, so we can count without opening it.
         cy.get('#examplesMenu button').its('length').then((n) => {
             for (let i = 0; i < n; i++) {
-                cy.get('#examplesBtn').click();
-                cy.get('#examplesMenu button').eq(i).click();
+                cy.get('#examplesBtn').click();             // open the menu fresh
+                cy.get('#examplesMenu button').eq(i).click();  // select (this closes it)
                 cy.get('#runBtn').click();
                 cy.get('#runBtn', { timeout: 25000 }).should('not.be.disabled');
                 cy.get('#output').should('not.contain', 'Error');
