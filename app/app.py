@@ -93,6 +93,14 @@ def about():
     return render_template("about.html", frozen=not ALLOW_INSTALL)
 
 
+@app.route("/hits", methods=["POST"])
+def hits_route():
+    # Bumped once per page load from the browser (bots that don't run JS don't count).
+    from backend.counter import bump
+
+    return jsonify({"count": bump()})
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return "healthy", 200

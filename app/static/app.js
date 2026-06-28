@@ -499,6 +499,23 @@
     // Warm both engines' version lists up front so switching engine is instant.
     Object.keys(VERSIONS).forEach(loadAvailable);
 
+    // Old-school visitor counter (bumped once per load; hidden if unavailable).
+    fetch("/hits", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.count == null) return;
+        var box = el("hitDigits");
+        box.innerHTML = "";
+        String(d.count).padStart(7, "0").split("").forEach(function (ch) {
+          var span = document.createElement("span");
+          span.className = "d";
+          span.textContent = ch;
+          box.appendChild(span);
+        });
+        el("hitCounter").hidden = false;
+      })
+      .catch(function () { /* counter unavailable — stay hidden */ });
+
     el("engineToggle").addEventListener("click", function (e) {
       var btn = e.target.closest(".engine-btn");
       if (btn) { setEngine(btn.dataset.engine); persist(); refreshFunctions(); }

@@ -131,6 +131,18 @@ select#versionSelect:focus, .ghost-btn:focus { outline: 2px solid var(--accent);
 .site-footer a:hover { text-decoration: underline; }
 .site-footer code { font-family: var(--mono); color: var(--text); }
 
+/* ---------- Old-school visitor counter ---------- */
+.hit-counter {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+}
+.hit-digits { display: inline-flex; gap: 2px; padding: 2px; background: #000; border: 1px solid #2a2f3a; border-radius: 3px; }
+.hit-digits .d {
+    font-family: var(--mono); font-weight: 700; font-size: 0.9rem; line-height: 1;
+    color: #39ff7a; background: #0a0d0a; padding: 2px 3px; border-radius: 2px;
+    min-width: 0.7em; text-align: center; text-shadow: 0 0 5px #39ff7a;
+}
+
 /* ---------- About page ---------- */
 .about {
     max-width: 760px; margin: 0 auto; padding: 3rem 1.4rem 4rem; line-height: 1.7;
